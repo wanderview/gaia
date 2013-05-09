@@ -113,6 +113,14 @@ function monitorChildVisibility(container,
       container.removeEventListener('scroll', scrollHandler);
       window.removeEventListener('resize', resizeHandler);
       observer.disconnect();
+    },
+    pause: function pause() {
+      container.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('resize', resizeHandler);
+    },
+    resume: function resume() {
+      container.addEventListener('scroll', scrollHandler);
+      window.addEventListener('resize', resizeHandler);
     }
   };
 
