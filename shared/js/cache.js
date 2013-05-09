@@ -16,13 +16,13 @@ Cache.prototype = {
 
   restore: function cache_restore(callback) {
     asyncStorage.getItem(this.id, function(data) {
-      this.data = JSON.parse(data || "[]");
+      this.data = data || [];
       callback(this.data);
     }.bind(this));
   },
 
   save: function cache_save() {
-    asyncStorage.setItem(this.id, JSON.stringify(this.data));
+    asyncStorage.setItem(this.id, this.data);
   },
 
   reset: function cache_reset() {

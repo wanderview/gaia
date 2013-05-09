@@ -647,7 +647,6 @@ contacts.List = (function() {
     dispatchCustomEvent('listRendered');
   }
 
-
   function fetchFromDatabase() {
     var sortBy = (orderByLastName === true ? 'familyName' : 'givenName');
     var options = {
@@ -666,12 +665,16 @@ contacts.List = (function() {
         return;
       }
 
+      var fromDOM = function fromDOM (a) {
+        return Array.isArray(a) ? Array.slice(a) : [];
+      }
+
       // Add those informations to the cache.
       cache.data[cache.data.length] = {
         'id': contact.id,
-        'givenName': contact.givenName,
-        'familyName': contact.familyName,
-        'org': contact.org
+        'givenName': fromDOM(contact.givenName),
+        'familyName': fromDOM(contact.familyName),
+        'org': fromDOM(contact.org)
       };
 
       cursor.continue();
