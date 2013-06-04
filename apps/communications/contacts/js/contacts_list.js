@@ -39,11 +39,13 @@ contacts.List = (function() {
   var scrolling = false;
 
   var onScreen = function onScreen(elem) {
+    console.log("ON SCREEN");
     window.setTimeout(fillContact, 0, elem);
   }
 
   var offScreen = function offScreen(elem) {
-    emptyContact(elem);
+    console.log("OFF SCREEN");
+    emptyContact();
   };
 
   var emptyContact = function cl_emptyElement(elem) {
@@ -372,8 +374,8 @@ contacts.List = (function() {
 
     if (isFirstChunk) {
       // Performance testing
+      monitorChildWithTagVisibility(scrollable, 500, 300, 4, 'li', onScreen, offScreen);
       PerformanceTestingHelper.dispatch('above-the-fold-ready');
-      monitorMultilevelChildVisibility(scrollable, 500, 300, 'li', onScreen, offScreen);
     }
     renderedChunks++;
   }
@@ -392,7 +394,7 @@ contacts.List = (function() {
     counter[group]++;
     var list = headers[group];
     var renderedContact;
-    renderedContact = createContainer(contact);
+    renderedContact = renderContact(contact);
     list.appendChild(renderedContact);
     if (show && counter[group] === 1)
       showGroup(group, true);
