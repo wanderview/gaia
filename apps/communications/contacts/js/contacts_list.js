@@ -531,8 +531,11 @@ contacts.List = (function() {
         contact.org[0] === '' || contact.org[0] === contact.givenName) {
       return;
     }
-    var meta = add ? addOrgMarkup(link) : link.lastElementChild;
-    var org = meta.querySelector('span.org');
+    if (add) {
+      addOrgMarkup(link, contact.org[0]);
+      return;
+    }
+    var org = link.lastElementChild.querySelector('span.org');
     org.textContent = contact.org[0];
   };
 
@@ -555,9 +558,14 @@ contacts.List = (function() {
   }
 
 
-  var addOrgMarkup = function addOrgMarkup(link) {
+  var addOrgMarkup = function addOrgMarkup(link, content) {
+    var span = document.createElement('span');
+    span.className = 'org';
+    if (content) {
+      span.textContent = content;
+    }
     var meta = document.createElement('p');
-    meta.innerHTML = '<span class="org"></span>';
+    meta.appendChild(span);
     link.appendChild(meta);
     return meta;
   };
