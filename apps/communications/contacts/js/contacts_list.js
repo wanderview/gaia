@@ -360,6 +360,7 @@ contacts.List = (function() {
     var isFirstChunk = (renderedChunks === 0);
     for (var i = 0; i < contacts.length; i++) {
       var contact = {
+        id: contacts[i].id,
         givenName: contacts[i].givenName,
         familyName: contacts[i].familyName,
         org: contacts[i].org,
