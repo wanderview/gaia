@@ -811,12 +811,30 @@ function monitorMultilevelChildVisibility(
   }
 
   //====================================
+  //  ignore mutations from user ops
+  //====================================
+
+  function ignoreMutations(func) {
+    if (typeof func !== 'function')
+      return;
+
+    g.observer.disconnect();
+    try {
+      func();
+    } finally {
+      // TODO: don't restore observation if we were stopped
+      g.observer.observe(container, { childList: true, subtree: true });
+    }
+  }
+
+  //====================================
   //  initialization + return
   //====================================
 
   init();
 
   return {
+    ignore: ignoreMutations,
     stop: stopMonitoring
   };
 }
