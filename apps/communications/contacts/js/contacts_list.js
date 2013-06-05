@@ -36,11 +36,7 @@ contacts.List = (function() {
   var ORDER_BY_FAMILY_NAME = 'familyName';
   var ORDER_BY_GIVEN_NAME = 'givenName';
 
-  // Time to wait for detecting that the user is not scrolling
-  var NO_SCROLL_TIME = 200;
-
   var NOP_FUNCTION = function() {};
-  var scrolling = false;
 
   var onscreen = function(el) {
     // If the contact has already been rendered there is no need to do extra
@@ -95,7 +91,7 @@ contacts.List = (function() {
 
     initOrder();
 
-    monitor = monitorChildWithTagVisibility(groupsList, 600, 300, 3, 'li',
+    monitor = monitorChildWithTagVisibility(scrollable, 600, 300, 4, 'li',
                                             onscreen, offscreen);
   };
 
@@ -388,6 +384,10 @@ contacts.List = (function() {
 
     var group = getGroupName(contact);
     headers[group].appendChild(renderedContact);
+
+    if (headers[group].children.length === 1) {
+      showGroup(group);
+    }
   }
 
   // Methods executed after rendering the list
@@ -780,6 +780,19 @@ contacts.List = (function() {
     return list.children.length;
   };
 
+  var hideGroup = function hideGroup(group) {
+    var groupTitle = headers[group].parentNode.children[0];
+    groupTitle.classList.add('hide');
+    FixedHeader.refresh();
+  };
+
+  var showGroup = function showGroup(group) {
+    var current = headers[group];
+    var groupTitle = current.parentNode.children[0];
+    groupTitle.classList.remove('hide');
+    FixedHeader.refresh();
+  };
+
   var remove = function remove(id) {
     // Could be more than one item if it's in favorites
     var items = groupsList.querySelectorAll('li[data-uuid=\"' + id + '\"]');
@@ -787,6 +800,9 @@ contacts.List = (function() {
     Array.prototype.forEach.call(items, function removeItem(item) {
       var ol = item.parentNode;
       ol.removeChild(item);
+      if (ol.children.length < 1) {
+        hideGroup(ol.dataset.group);
+      }
     });
     var selector = 'section header:not(.hide)';
     var visibleElements = groupsList.querySelectorAll(selector);

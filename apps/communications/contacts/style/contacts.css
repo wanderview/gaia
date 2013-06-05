@@ -587,13 +587,13 @@ section[role="region"] > header .icon.icon-settings
   height: auto;
 }
 
-#groups-container {
+#groups-container-box {
   max-height: 410px;
   width: 100%;
   overflow: hidden;
 }
 
-#groups-list {
+#groups-container {
   height: 100%;
   overflow: scroll;
 }
