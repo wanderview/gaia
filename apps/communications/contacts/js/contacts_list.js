@@ -47,9 +47,11 @@ contacts.List = (function() {
     if (contact.rendered)
       return;;
 
-    console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
-    renderContact(el, contact);
-    contact.rendered = true;
+    monitor.ignore(function() {
+      console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
+      renderContact(el, contact);
+      contact.rendered = true;
+    });
   };
 
   var offscreen = function(el) {
