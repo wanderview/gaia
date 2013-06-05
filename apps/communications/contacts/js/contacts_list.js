@@ -55,7 +55,6 @@ contacts.List = (function() {
         while (toRender.length) {
           var row = toRender.shift();
           var contact = loadedContacts[row.dataset.uuid];
-          console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
           renderContact(row, contact);
           delete loadedContacts[row.dataset.uuid];
         }
@@ -662,7 +661,6 @@ contacts.List = (function() {
   };
 
   var getAllContacts = function cl_getAllContacts(errorCb, successCb) {
-    console.log("### ### contacts_list.js getAllContacts START " + Date.now());
     initOrder(function onInitOrder() {
       var sortBy = (orderByLastName === true ? 'familyName' : 'givenName');
       var options = {
@@ -692,7 +690,6 @@ contacts.List = (function() {
           toggleNoContactsScreen(showNoContacs);
           dispatchCustomEvent('listRendered');
           contactsLoadFinished = true;
-          console.log("### ### contacts_list.js getAllContacts END " + Date.now());
         }
       };
       cursor.onerror = errorCb;
