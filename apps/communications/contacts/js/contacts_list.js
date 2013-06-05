@@ -81,7 +81,7 @@ contacts.List = (function() {
 
     initOrder();
 
-    monitor = monitorChildWithTagVisibility(groupsList, 600, 300, 4, 'li',
+    monitor = monitorChildWithTagVisibility(groupsList, 600, 300, 3, 'li',
                                             onscreen, offscreen);
   };
 
