@@ -24,6 +24,8 @@ contacts.List = (function() {
       cachedContacts = [],
       loadedContacts = [],
       viewHeight,
+      renderTimer = null,
+      toRender = [],
       monitor;
 
   // Key on the async Storage
@@ -45,13 +47,25 @@ contacts.List = (function() {
     // work here.
     var contact = loadedContacts[el.dataset.index];
     if (contact.rendered)
-      return;;
+      return;
 
-    monitor.ignore(function() {
-      console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
-      renderContact(el, contact);
-      contact.rendered = true;
-    });
+    toRender.push(el);
+
+    if (renderTimer)
+      return;
+
+    renderTimer = setTimeout(function() {
+      renderTimer = null;
+      monitor.ignore(function() {
+        while (toRender.length) {
+          var row = toRender.shift();
+          var contact = loadedContacts[row.dataset.index];
+          console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
+          renderContact(row, contact);
+          contact.rendered = true;
+        }
+      });
+    }, 0);
   };
 
   var offscreen = function(el) {
