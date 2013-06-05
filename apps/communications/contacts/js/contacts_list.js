@@ -7,7 +7,7 @@ contacts.List = (function() {
       favoriteGroup,
       loaded = false,
       cancel,
-      conctactsListView,
+      contactsListView,
       fastScroll,
       scrollable,
       settingsView,
@@ -22,8 +22,9 @@ contacts.List = (function() {
       imagesLoaded = false,
       contactsLoadFinished = false,
       cachedContacts = [],
+      loadedContacts = [],
       viewHeight,
-      noScrollTimer;
+      monitor;
 
   // Key on the async Storage
   var ORDER_KEY = 'order.lastname';
@@ -39,18 +40,34 @@ contacts.List = (function() {
   var NOP_FUNCTION = function() {};
   var scrolling = false;
 
+  var onscreen = function(el) {
+    // If the contact has already been rendered there is no need to do extra
+    // work here.
+    var contact = loadedContacts[el.dataset.index];
+    if (contact.rendered)
+      return;;
+
+    console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
+    renderContact(el, contact);
+    contact.rendered = true;
+  };
+
+  var offscreen = function(el) {
+    // Nothing special is done here for now. It could be good to release images
+    // or other memory expensive stuffs here.
+  };
+
   var init = function load(element) {
     _ = navigator.mozL10n.get;
 
     cancel = document.getElementById('cancel-search'),
-    conctactsListView = document.getElementById('view-contacts-list'),
+    contactsListView = document.getElementById('view-contacts-list'),
     fastScroll = document.querySelector('nav[data-type="scrollbar"]'),
     scrollable = document.querySelector('#groups-container');
-    scrollable.addEventListener('scroll', onScroll);
     settingsView = document.querySelector('#view-settings .view-body-inner');
     noContacts = document.querySelector('#no-contacts');
 
-    groupsList = element;
+    groupsList = document.getElementById('groups-list');
     groupsList.addEventListener('click', onClickHandler);
 
     initHeaders();
@@ -61,62 +78,13 @@ contacts.List = (function() {
     imgLoader = new ImageLoader('#groups-container', 'li');
 
     initOrder();
+
+    monitor = monitorChildWithTagVisibility(groupsList, 600, 300, 4, 'li',
+                                            onscreen, offscreen);
   };
-
-  var onNoScroll = function() {
-    scrolling = false;
-    if (toRender.length === 0) {
-      clearInterval(noScrollTimer);
-      return;
-    }
-    showNextGroup(false);
-  };
-
-  function onScroll(e) {
-    if (!scrolling)
-      FixedHeader.refresh();
-    clearInterval(noScrollTimer);
-    if (contactsLoadFinished) {
-      noScrollTimer = window.setInterval(onNoScroll, NO_SCROLL_TIME);
-      if (toRender.length === 0) {
-        scrollable.removeEventListener('scroll', onScroll);
-        return;
-      }
-    }
-
-    viewHeight = viewHeight || conctactsListView.clientHeight;
-    var totalHeight = scrollable.scrollHeight;
-    var currentScroll = scrollable.scrollTop;
-    var diff = (totalHeight - currentScroll);
-
-    // When the scroll is about to reach
-    // the end of the shown list, we show
-    // the next element
-    if (diff < (viewHeight + (viewHeight * 0.2))) {
-      showNextGroup(true);
-    }
-    scrolling = true;
-  };
-
-  var toRender = [];
-  var recentlyAdded = [];
-  function showNextGroup(forceShow) {
-    var recent = recentlyAdded.length ? recentlyAdded[0] : null;
-    var nextLetter = toRender.length ? toRender[0] : null;
-    if (recent && (!nextLetter || recent <= nextLetter)) {
-      var next = recentlyAdded.shift();
-      showGroup(next);
-      return;
-    }
-
-    if (toRender.length) {
-      var next = toRender.shift();
-      showGroup(next, forceShow);
-    }
-  }
 
   var initSearch = function initSearch(callback) {
-    contacts.Search.init(conctactsListView, favoriteGroup, onClickHandler);
+    contacts.Search.init(contactsListView, favoriteGroup, onClickHandler);
 
     if (callback) {
       callback();
@@ -140,11 +108,6 @@ contacts.List = (function() {
   };
 
   var scrollToCb = function scrollCb(domTarget, group) {
-    if (toRender.indexOf(group) != -1) {
-      while (toRender.indexOf(group) != -1) {
-        showNextGroup(true);
-      }
-    }
     if (domTarget.offsetTop > 0)
       scrollable.scrollTop = domTarget.offsetTop;
   };
@@ -208,8 +171,9 @@ contacts.List = (function() {
     }
   };
 
-  var renderGroupHeader = function renderGroupHeader(group, letter, show) {
+  var renderGroupHeader = function renderGroupHeader(group, letter) {
     var letteredSection = document.createElement('section');
+    letteredSection.id = 'section-group-' + group;
     var title = document.createElement('header');
     title.id = 'group-' + group;
     title.className = 'hide';
@@ -224,14 +188,14 @@ contacts.List = (function() {
     contactsContainer.dataset.group = group;
     letteredSection.appendChild(title);
     letteredSection.appendChild(contactsContainer);
-    letteredSection.className = show ? '' : 'hide';
+    letteredSection.className = '';
     groupsList.appendChild(letteredSection);
 
     headers[group] = contactsContainer;
   };
 
   var renderFullContact = function renderFullContact(contact, fbContacts) {
-    var contactContainer = renderContact(contact);
+    var contactContainer = renderContact(null, contact);
     var name = contactContainer.children[0];
 
     addSearchOptions(name, contact);
@@ -270,9 +234,11 @@ contacts.List = (function() {
   // This method returns the very essential information needed
   // for rendering the contacts list
   // Images, Facebook data and searcheable info will be lazy loaded
-  var renderContact = function renderContact(contact, fbContacts) {
+  var renderContact = function renderContact(contactContainer, contact, fbContacts) {
     contact = refillContactData(contact);
-    var contactContainer = document.createElement('li');
+    if (!contactContainer) {
+      contactContainer = document.createElement('li');
+    }
     contactContainer.dataset.uuid = contact.id;
     var fbUid = getFbUid(contact);
     if (fbUid) {
@@ -378,11 +344,18 @@ contacts.List = (function() {
 
   var renderedChunks = 0;
   var CHUNK_SIZE = 20;
-  function renderChunk(contacts) {
+  function loadChunk(contacts) {
     var isFirstChunk = (renderedChunks === 0);
     for (var i = 0; i < contacts.length; i++) {
-      var contact = contacts[i];
-      appendToList(contact, isFirstChunk);
+      var contact = {
+        givenName: contacts[i].givenName,
+        familyName: contacts[i].familyName,
+        org: contacts[i].org,
+        rendered: false
+      };
+      var index = loadedContacts.length;
+      loadedContacts[index] = contact;
+      appendToList(contact, index);
     }
 
     if (isFirstChunk) {
@@ -393,28 +366,17 @@ contacts.List = (function() {
   }
 
   //Adds each contact to its group container
-  var counter = {};
-  function appendToList(contact, show) {
-    var group = getGroupName(contact);
-    if (!counter[group]) {
-      counter[group] = 0;
-      if (!show) {
-        toRender.push(group);
-      }
-    }
+  function appendToList(contact, index) {
+    var renderedContact = document.createElement('li');
+    renderedContact.dataset.index = index;
 
-    counter[group]++;
-    var list = headers[group];
-    var renderedContact = renderContact(contact);
-    list.appendChild(renderedContact);
-    if (show && counter[group] === 1)
-      showGroup(group, true);
+    var group = getGroupName(contact);
+    headers[group].appendChild(renderedContact);
   }
 
   // Methods executed after rendering the list
   // by first time
   var onListRendered = function onListRendered() {
-    noScrollTimer = window.setInterval(onNoScroll, NO_SCROLL_TIME);
     window.addEventListener('finishLazyLoading', function finishLazyLoading() {
       if (searchLoaded && imagesLoaded) {
         searchLoaded = false;
@@ -499,7 +461,7 @@ contacts.List = (function() {
       }
     }
     if (favs)
-      showGroup('favorites', true);
+      FixedHeader.refresh();
     contactsPhoto = [];
     LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
       imgLoader.setResolver(fb.resolver);
@@ -629,20 +591,19 @@ contacts.List = (function() {
       return;
     }
     renderedChunks = 0;
-    counter = {};
     if (contacts) {
       if (!contacts.length) {
         toggleNoContactsScreen(true);
         return;
       }
       toggleNoContactsScreen(false);
-      renderChunk(contacts);
+      loadChunk(contacts);
       onListRendered();
       dispatchCustomEvent('listRendered');
       contactsLoadFinished = true;
       return;
     }
-    getAllContacts(errorCb, renderChunk);
+    getAllContacts(errorCb, loadChunk);
   };
 
   var getContactById = function(contactID, successCb, errorCb) {
@@ -678,6 +639,7 @@ contacts.List = (function() {
   };
 
   var getAllContacts = function cl_getAllContacts(errorCb, successCb) {
+    console.log("### ### contacts_list.js getAllContacts START " + Date.now());
     initOrder(function onInitOrder() {
       var sortBy = (orderByLastName === true ? 'familyName' : 'givenName');
       var options = {
@@ -686,7 +648,7 @@ contacts.List = (function() {
       };
 
       var cursor = navigator.mozContacts.getAll(options);
-      var successCb = successCb || renderChunk;
+      var successCb = successCb || loadChunk;
       var num = 0;
       var chunk = [];
       cursor.onsuccess = function onsuccess(evt) {
@@ -707,6 +669,7 @@ contacts.List = (function() {
           toggleNoContactsScreen(showNoContacs);
           dispatchCustomEvent('listRendered');
           contactsLoadFinished = true;
+          console.log("### ### contacts_list.js getAllContacts END " + Date.now());
         }
       };
       cursor.onerror = errorCb;
@@ -731,23 +694,10 @@ contacts.List = (function() {
 
     addToGroup(theContact, list);
 
-    if (list.children.length === 1) {
-      if (contactsLoadFinished && toRender.length === 0) {
-        showGroup(group);
-      } else {
-        recentlyAdded.push(group);
-        showNextGroup();
-      }
-    }
-
     // If is favorite add as well to the favorite group
     if (isFavorite(theContact)) {
       list = headers['favorites'];
       addToGroup(theContact, list);
-
-      if (list.children.length === 1) {
-        showGroup('favorites');
-      }
     }
     toggleNoContactsScreen(false);
     FixedHeader.refresh();
@@ -806,21 +756,6 @@ contacts.List = (function() {
     return list.children.length;
   };
 
-  var hideGroup = function hideGroup(group) {
-    var groupTitle = headers[group].parentNode.children[0];
-    groupTitle.classList.add('hide');
-    FixedHeader.refresh();
-  };
-
-  var showGroup = function showGroup(group, refresh) {
-    var current = headers[group];
-    var groupTitle = current.parentNode.children[0];
-    groupTitle.classList.remove('hide');
-    current.parentNode.classList.remove('hide');
-    if (refresh)
-      FixedHeader.refresh();
-  };
-
   var remove = function remove(id) {
     // Could be more than one item if it's in favorites
     var items = groupsList.querySelectorAll('li[data-uuid=\"' + id + '\"]');
@@ -828,10 +763,6 @@ contacts.List = (function() {
     Array.prototype.forEach.call(items, function removeItem(item) {
       var ol = item.parentNode;
       ol.removeChild(item);
-      if (ol.children.length === 0) {
-        // Only template
-        hideGroup(ol.dataset.group);
-      }
     });
     var selector = 'section header:not(.hide)';
     var visibleElements = groupsList.querySelectorAll(selector);
@@ -938,19 +869,19 @@ contacts.List = (function() {
     utils.dom.removeChildNodes(groupsList);
     loaded = false;
 
-    initHeaders(true);
+    initHeaders();
   };
 
   // Initialize group headers at the beginning or after a dom reset
-  var initHeaders = function initHeaders(show) {
+  var initHeaders = function initHeaders() {
     // Populating contacts by groups
     headers = {};
-    renderGroupHeader('favorites', '', show);
+    renderGroupHeader('favorites', '');
     for (var i = 65; i <= 90; i++) {
       var letter = String.fromCharCode(i);
-      renderGroupHeader(letter, letter, show);
+      renderGroupHeader(letter, letter);
     }
-    renderGroupHeader('und', '#', show);
+    renderGroupHeader('und', '#');
   };
 
   var setOrderByLastName = function setOrderByLastName(value) {
