@@ -22,7 +22,7 @@ contacts.List = (function() {
       imagesLoaded = false,
       contactsLoadFinished = false,
       cachedContacts = [],
-      loadedContacts = [],
+      loadedContacts = {},
       viewHeight,
       renderTimer = null,
       toRender = [],
@@ -41,8 +41,7 @@ contacts.List = (function() {
   var onscreen = function(el) {
     // If the contact has already been rendered there is no need to do extra
     // work here.
-    var contact = loadedContacts[el.dataset.index];
-    if (contact.rendered)
+    if (el.dataset.rendered)
       return;
 
     toRender.push(el);
@@ -55,10 +54,10 @@ contacts.List = (function() {
       monitor.ignore(function() {
         while (toRender.length) {
           var row = toRender.shift();
-          var contact = loadedContacts[row.dataset.index];
+          var contact = loadedContacts[row.dataset.uuid];
           console.log("### ### RENDER: " + contact.givenName + " " + contact.familyName);
           renderContact(row, contact);
-          contact.rendered = true;
+          delete loadedContacts[row.dataset.uuid];
         }
       });
     }, 0);
@@ -275,6 +274,7 @@ contacts.List = (function() {
     if (contact.category || contact.photo) {
       contactsPhoto.push(contact.id);
     }
+    contactContainer.dataset.rendered = true;
     return contactContainer;
   };
 
@@ -363,12 +363,10 @@ contacts.List = (function() {
         id: contacts[i].id,
         givenName: contacts[i].givenName,
         familyName: contacts[i].familyName,
-        org: contacts[i].org,
-        rendered: false
+        org: contacts[i].org
       };
-      var index = loadedContacts.length;
-      loadedContacts[index] = contact;
-      appendToList(contact, index);
+      loadedContacts[contact.id] = contact;
+      appendToList(contact, contact.id);
     }
 
     if (isFirstChunk) {
@@ -379,9 +377,9 @@ contacts.List = (function() {
   }
 
   //Adds each contact to its group container
-  function appendToList(contact, index) {
+  function appendToList(contact, uuid) {
     var renderedContact = document.createElement('li');
-    renderedContact.dataset.index = index;
+    renderedContact.dataset.uuid = uuid;
 
     var group = getGroupName(contact);
     headers[group].appendChild(renderedContact);
