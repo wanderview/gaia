@@ -22,7 +22,7 @@ function monitorGrandchildWithTagVisibility(
   offscreenCallback
 ) {
   var maxDepth = 2;
-  monitorChildWithTagVisibility(
+  return monitorChildWithTagVisibility(
     container,
     scrollMargin,
     scrollDelta,
@@ -48,7 +48,7 @@ function monitorChildWithTagVisibility(
   offscreenCallback
 ) {
   var tagName = tagName.toUpperCase();
-  monitorMultilevelChildVisibility(
+  return monitorMultilevelChildVisibility(
     container,
     scrollMargin,
     scrollDelta,
@@ -70,7 +70,7 @@ function monitorDirectChildVisibility(
   onscreenCallback,
   offscreenCallback
 ) {
-  monitorMultilevelChildVisibility(
+  return monitorMultilevelChildVisibility(
                          container,
                          scrollMargin,
                          scrollDelta,
