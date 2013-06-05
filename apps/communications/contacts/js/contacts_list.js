@@ -471,13 +471,10 @@ contacts.List = (function() {
         var link = current.container;
         renderPhoto(contact, link);
         if (isFavorite(contact)) {
-          favs = true;
           addToFavoriteList(link.cloneNode(true));
         }
       }
     }
-    if (favs)
-      FixedHeader.refresh();
     contactsPhoto = [];
     LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
       imgLoader.setResolver(fb.resolver);
@@ -602,6 +599,9 @@ contacts.List = (function() {
   function addToFavoriteList(favorite) {
     var container = headers['favorites'];
     container.appendChild(favorite);
+    if (continer.children.length === 1) {
+      showGroupByList(container);
+    }
   }
 
   var getContactsByGroup = function gCtByGroup(errorCb, contacts) {
@@ -774,6 +774,10 @@ contacts.List = (function() {
       list.appendChild(newLi);
     }
 
+    if (list.children.length === 1) {
+      showGroupByList(list);
+    }
+
     // Mark as loaded to avoid data duplication by the resolver
     newLi.dataset.status = 'loaded';
 
@@ -788,6 +792,10 @@ contacts.List = (function() {
 
   var showGroup = function showGroup(group) {
     var current = headers[group];
+    showGroupByList(current);
+  }
+
+  var showGroupByList = function showGroupByList(current) {
     var groupTitle = current.parentNode.children[0];
     groupTitle.classList.remove('hide');
     FixedHeader.refresh();
