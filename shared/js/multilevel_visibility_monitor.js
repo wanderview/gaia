@@ -801,30 +801,24 @@ function monitorMultilevelChildVisibility(
   }
 
   //====================================
-  //  cleanup
+  //  management
   //====================================
+
+  function pauseMonitoringMutations() {
+    g.observer.disconnect();
+  }
+
+  function resumeMonitoringMutations() {
+    if (g.stopped)
+      return;
+    g.observer.observe(container, { childList: true, subtree: true });
+  }
 
   function stopMonitoring() {
     container.removeEventListener('scroll', scrollHandler);
     window.removeEventListener('resize', updateVisibility);
     g.observer.disconnect();
-  }
-
-  //====================================
-  //  ignore mutations from user ops
-  //====================================
-
-  function ignoreMutations(func) {
-    if (typeof func !== 'function')
-      return;
-
-    g.observer.disconnect();
-    try {
-      func();
-    } finally {
-      // TODO: don't restore observation if we were stopped
-      g.observer.observe(container, { childList: true, subtree: true });
-    }
+    g.stopped = true;
   }
 
   //====================================
@@ -834,7 +828,8 @@ function monitorMultilevelChildVisibility(
   init();
 
   return {
-    ignore: ignoreMutations,
+    pauseMonitoringMutations: pauseMonitoringMutations,
+    resumeMonitoringMutations: resumeMonitoringMutations,
     stop: stopMonitoring
   };
 }
