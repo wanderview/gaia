@@ -355,17 +355,11 @@ contacts.List = (function() {
 
   var renderedChunks = 0;
   var CHUNK_SIZE = 20;
+  var NUM_VISIBLE_CONTACTS = 6;
   function loadChunk(contacts) {
     var isFirstChunk = (renderedChunks === 0);
     for (var i = 0; i < contacts.length; i++) {
-      var contact = {
-        id: contacts[i].id,
-        givenName: contacts[i].givenName,
-        familyName: contacts[i].familyName,
-        org: contacts[i].org
-      };
-      loadedContacts[contact.id] = contact;
-      appendToList(contact, contact.id);
+      appendToList(contacts[i]);
     }
 
     if (isFirstChunk) {
@@ -376,15 +370,25 @@ contacts.List = (function() {
   }
 
   //Adds each contact to its group container
-  function appendToList(contact, uuid) {
+  function appendToList(contact) {
     var renderedContact = document.createElement('li');
-    renderedContact.dataset.uuid = uuid;
+    renderedContact.dataset.uuid = contact.id;
 
     var group = getGroupName(contact);
-    headers[group].appendChild(renderedContact);
+    var list = headers[group];
 
-    if (headers[group].children.length === 1) {
-      showGroup(group);
+    // If above the fold for list, render immediately
+    if (list.children.length < (NUM_VISIBLE_CONTACTS-1)) {
+      renderContact(renderedContact, contact);
+
+    // Otherwise save contact to render later
+    } else {
+      loadedContacts[contact.id] = contact;
+    }
+
+    list.appendChild(renderedContact);
+    if (list.children.length === 1) {
+      showGroupByList(list);
     }
   }
 
