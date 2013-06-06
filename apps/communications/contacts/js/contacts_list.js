@@ -51,14 +51,14 @@ contacts.List = (function() {
 
     renderTimer = setTimeout(function() {
       renderTimer = null;
-      monitor.ignore(function() {
-        while (toRender.length) {
-          var row = toRender.shift();
-          var contact = loadedContacts[row.dataset.uuid];
-          renderContact(row, contact);
-          delete loadedContacts[row.dataset.uuid];
-        }
-      });
+      monitor.pauseMonitoringMutations();
+      while (toRender.length) {
+        var row = toRender.shift();
+        var contact = loadedContacts[row.dataset.uuid];
+        renderContact(row, contact);
+        delete loadedContacts[row.dataset.uuid];
+      }
+      monitor.resumeMonitoringMutations();
     }, 0);
   };
 
