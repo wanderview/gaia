@@ -18,7 +18,6 @@ contacts.List = (function() {
       photoTemplate,
       headers = {},
       contactsCache = {},
-      searchLoaded = false,
       imagesLoaded = false,
       contactsLoadFinished = false,
       cachedContacts = [],
@@ -54,9 +53,7 @@ contacts.List = (function() {
       monitor.pauseMonitoringMutations();
       while (toRender.length) {
         var row = toRender.shift();
-        var contact = loadedContacts[row.dataset.uuid];
-        renderContact(row, contact);
-        delete loadedContacts[row.dataset.uuid];
+        renderLoadedContact(row);
       }
       monitor.resumeMonitoringMutations();
     }, 0);
@@ -66,6 +63,16 @@ contacts.List = (function() {
     // Nothing special is done here for now. It could be good to release images
     // or other memory expensive stuffs here.
   };
+
+  var renderLoadedContact = function(el) {
+    if (el.dataset.rendered)
+      return;
+    var contact = loadedContacts[el.dataset.uuid];
+    if (!contact)
+      return;
+    renderContact(el, contact);
+    delete loadedContacts[el.dataset.uuid];
+  }
 
   var init = function load(element) {
     _ = navigator.mozL10n.get;
@@ -93,14 +100,51 @@ contacts.List = (function() {
                                             onscreen, offscreen);
   };
 
+  //
+  // Implement interface required by search.js
+  //
+  var searchSource = {
+    getNodes: function() {
+      var domNodes = contactsListView.querySelectorAll('section>ol>li');
+      return Array.prototype.slice.call(domNodes);
+    },
+
+    getFirstNode: function() {
+      return contactsListView.querySelector('section>ol>li');
+    },
+
+    getNextNode: function(contact) {
+      var out = contact.nextElementSibling;
+      var nextParent = contact.parentNode.parentNode.nextElementSibling;
+      while (!out && nextParent) {
+        out = nextParent.querySelector('ol > li:first-child');
+        nextParent = nextParent.nextElementSibling;
+      }
+      return out;
+    },
+
+    clone: function(node) {
+      renderLoadedContact(node);
+      return node.cloneNode();
+    },
+
+    getNodeForId: function(id) {
+      return contactsListView.querySelector('[data-uuid="' + id + '"]');
+    },
+
+    getSearchText: function(node) {
+      return node.dataset.search;
+    },
+
+    click: onClickHandler
+  };
+
   var initSearch = function initSearch(callback) {
-    contacts.Search.init(contactsListView, favoriteGroup, onClickHandler);
+    contacts.Search.init(searchSource, true);
 
     if (callback) {
       callback();
     }
-
-    lazyLoadSearch();
   };
 
   var initAlphaScroll = function initAlphaScroll() {
@@ -208,9 +252,6 @@ contacts.List = (function() {
     var contactContainer = renderContact(null, contact);
     var name = contactContainer.children[0];
 
-    addSearchOptions(name, contact);
-    addOrderOptions(name, contact);
-
     // Label the contact concerning social networks
     if (contact.category) {
       var marks = buildSocialMarks(contact.category);
@@ -247,9 +288,8 @@ contacts.List = (function() {
   var renderContact = function renderContact(contactContainer, contact, fbContacts) {
     contact = refillContactData(contact);
     if (!contactContainer) {
-      contactContainer = document.createElement('li');
+      contactContainer = createPlaceholder(contact);
     }
-    contactContainer.dataset.uuid = contact.id;
     var fbUid = getFbUid(contact);
     if (fbUid) {
       contactContainer.dataset.fbUid = fbUid;
@@ -260,12 +300,10 @@ contacts.List = (function() {
     // contactInner is a link with 3 p elements:
     // name, socaial marks and org
     var nameElement = getHighlightedName(contact);
-    addOrderOptions(nameElement, contact);
     contactContainer.appendChild(nameElement);
     contactsCache[contact.id] = {
       contact: contact,
-      container: contactContainer,
-      nameElement: nameElement
+      container: contactContainer
     };
     renderOrg(contact, contactContainer, true);
 
@@ -275,6 +313,14 @@ contacts.List = (function() {
     }
     contactContainer.dataset.rendered = true;
     return contactContainer;
+  };
+
+  var createPlaceholder = function createPlaceholder(contact) {
+    var ph = document.createElement('li');
+    ph.dataset.uuid = contact.id;
+    ph.dataset.search = getSearchString(contact);
+    ph.dataset.order = getStringToBeOrdered(contact);
+    return ph;
   };
 
   var getSearchString = function getSearchString(contact) {
@@ -356,10 +402,11 @@ contacts.List = (function() {
   var renderedChunks = 0;
   var CHUNK_SIZE = 20;
   var NUM_VISIBLE_CONTACTS = 6;
-  function loadChunk(contacts) {
+  function loadChunk(chunk) {
     var isFirstChunk = (renderedChunks === 0);
-    for (var i = 0; i < contacts.length; i++) {
-      appendToList(contacts[i]);
+    var nodes = [];
+    for (var i = 0; i < chunk.length; i++) {
+      nodes.push(appendToList(chunk[i]));
     }
 
     if (isFirstChunk) {
@@ -367,37 +414,38 @@ contacts.List = (function() {
       PerformanceTestingHelper.dispatch('above-the-fold-ready');
     }
     renderedChunks++;
+    contacts.Search.appendNodes(nodes);
   }
 
   //Adds each contact to its group container
   function appendToList(contact) {
-    var renderedContact = document.createElement('li');
-    renderedContact.dataset.uuid = contact.id;
+    var ph = createPlaceholder(contact);
 
     var group = getGroupName(contact);
     var list = headers[group];
 
     // If above the fold for list, render immediately
     if (list.children.length < (NUM_VISIBLE_CONTACTS-1)) {
-      renderContact(renderedContact, contact);
+      renderContact(ph, contact);
 
     // Otherwise save contact to render later
     } else {
       loadedContacts[contact.id] = contact;
     }
 
-    list.appendChild(renderedContact);
+    list.appendChild(ph);
     if (list.children.length === 1) {
       showGroupByList(list);
     }
+
+    return ph;
   }
 
   // Methods executed after rendering the list
   // by first time
   var onListRendered = function onListRendered() {
     window.addEventListener('finishLazyLoading', function finishLazyLoading() {
-      if (searchLoaded && imagesLoaded) {
-        searchLoaded = false;
+      if (imagesLoaded) {
         imagesLoaded = false;
         window.removeEventListener('finishLazyLoading', finishLazyLoading);
         contactsCache = {};
@@ -413,47 +461,6 @@ contacts.List = (function() {
       lazyLoadImages();
       loaded = true;
     });
-  };
-
-  var searchLoading = false;
-
-  var lazyLoadSearch = function lazyLoadSearch() {
-    if (searchLoading || searchLoaded) {
-      return;
-    }
-
-    searchLoading = true;
-
-    if (!loaded) {
-      window.addEventListener('listRendered', function onRendered() {
-        window.removeEventListener('listRendered', onRendered);
-        doLazyLoadSearch();
-      });
-    } else if (!searchLoaded) {
-      doLazyLoadSearch();
-    }
-  };
-
-  // Method that fills non-visible datasets
-  // needed for searching and adding new elements
-  var doLazyLoadSearch = function doLazyLoadSearch() {
-    for (var id in contactsCache) {
-      var current = contactsCache[id];
-      addSearchOptions(current.nameElement, current.contact);
-    }
-    searchLoaded = true;
-    searchLoading = false;
-    contacts.Search.enableSearch();
-    dispatchCustomEvent('finishLazyLoading');
-  };
-
-  var addOrderOptions = function addOrderOptions(name, contact) {
-    var orderedString = getStringToBeOrdered(contact);
-    name.dataset['order'] = orderedString;
-  };
-
-  var addSearchOptions = function addSearchOptions(name, contact) {
-    name.dataset['search'] = getSearchString(contact);
   };
 
   var isFavorite = function isFavorite(contact) {
@@ -761,7 +768,7 @@ contacts.List = (function() {
     var len = liElems.length;
     for (var i = 0; i < len; i++) {
       var liElem = liElems[i];
-      var name = liElem.querySelector('p').dataset.order;
+      var name = liElem.dataset.order;
       if (name.localeCompare(cName) >= 0) {
         newLi = renderFullContact(contact);
         list.insertBefore(newLi, liElem);
@@ -954,10 +961,6 @@ contacts.List = (function() {
     'getHighlightedName': getHighlightedName,
     get chunkSize() {
       return CHUNK_SIZE;
-    },
-    // The purpose of this method is only for unit tests
-    'resetSearch': function resetSearch() {
-      searchLoaded = false;
     }
   };
 })();

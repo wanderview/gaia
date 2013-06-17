@@ -125,6 +125,35 @@ if (typeof window.importer === 'undefined') {
       return key;
     }
 
+    var searchSource = {
+      getNodes: function() {
+        return contactList.querySelectorAll("section>ol>li");
+      },
+      getFirstNode: function() {
+        return contactList.querySelector("section>ol>li");
+      },
+      getNextNode: function(contact) {
+        var out = contact.nextElementSibling;
+        var nextParent = contact.parentNode.parentNode.nextElementSibling;
+        while (!out && nextParent) {
+          out = nextParent.querySelector('ol > li:first-child');
+          nextParent = nextParent.nextElementSibling;
+        }
+        return out;
+      },
+      clone: function(node) {
+        return node.cloneNode();
+      },
+      getNodeForId: function(id) {
+        return contactsList.querySelector('[data-uuid="' + id + '"]');
+      },
+      getSearchText: function(node) {
+        console.log("### ### IMPORT getSearchTest " + (node.dataset ? node.dataset.search : null));
+        return node.dataset.search
+      },
+      click: onSearchResultCb
+    };
+
     UI.init = function() {
       var overlay = document.querySelector('nav[data-type="scrollbar"] p');
       var jumper = document.querySelector('nav[data-type="scrollbar"] ol');
@@ -146,9 +175,12 @@ if (typeof window.importer === 'undefined') {
       };
 
       utils.alphaScroll.init(params);
-      contacts.Search.init(document.getElementById('content'), null,
-                           onSearchResultCb, true);
+      contacts.Search.init(searchSource, true);
     };
+
+    function getDomNodes() {
+      return contentElement.querySelector(".block-item:not([data-uuid='#uid#']");
+    }
 
     function notifyLogout() {
        // Simulating logout finished to enable seamless closing of the iframe
