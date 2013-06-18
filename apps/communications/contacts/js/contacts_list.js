@@ -608,7 +608,7 @@ contacts.List = (function() {
   function addToFavoriteList(favorite) {
     var container = headers['favorites'];
     container.appendChild(favorite);
-    if (continer.children.length === 1) {
+    if (container.children.length === 1) {
       showGroupByList(container);
     }
   }
