@@ -148,7 +148,6 @@ if (typeof window.importer === 'undefined') {
         return contactsList.querySelector('[data-uuid="' + id + '"]');
       },
       getSearchText: function(node) {
-        console.log("### ### IMPORT getSearchTest " + (node.dataset ? node.dataset.search : null));
         return node.dataset.search
       },
       click: onSearchResultCb
