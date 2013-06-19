@@ -22,10 +22,10 @@ contacts.Search = (function() {
       blurList = false,
       theClones = {},
       CHUNK_SIZE = 10,
-      // These values might change for other form factors
-      SEARCH_PAGE_SIZE = 7,
-      // Search result will not be showing more than HARD_LIMIT contacts
-      HARD_LIMIT = 25,
+      // Default to invalid page size and recalculate when first row added
+      searchPageSize = -1,
+      // Limit search result to hardLimit contacts, recalc with page size
+      hardLimit = 25,
       emptySearch = true,
       remainingPending = true,
       imgLoader,
@@ -79,7 +79,7 @@ contacts.Search = (function() {
 
     searchList.parentNode.addEventListener('touchstart', function() {
       if (searchableNodes && remainingPending) {
-        addRemainingResults(searchableNodes, SEARCH_PAGE_SIZE);
+        addRemainingResults(searchableNodes, searchPageSize);
       }
       blurList = true;
     });
@@ -139,7 +139,7 @@ contacts.Search = (function() {
 
     var fragment = document.createDocumentFragment();
 
-    for (var i = from; i < HARD_LIMIT && i < nodes.length; i++) {
+    for (var i = from; i < hardLimit && i < nodes.length; i++) {
       var node = nodes[i].node;
       var clon = getClone(node);
       fragment.appendChild(clon);
@@ -158,14 +158,14 @@ contacts.Search = (function() {
     if (canReuseSearchables && searchableNodes &&
         searchView.classList.contains('insearchmode') && blurList) {
       // All the searchable nodes have to be added
-      addRemainingResults(searchableNodes, SEARCH_PAGE_SIZE);
+      addRemainingResults(searchableNodes, searchPageSize);
     }
     else if (emptySearch === true && remainingPending === true) {
       var lastNode = searchList.querySelector('li:last-child');
       if (lastNode) {
         var lastNodeUid = lastNode.dataset.uuid;
         var startNode = source.getNextNode(source.getNodeForId(lastNodeUid));
-        fillIdentityResults(startNode, HARD_LIMIT - SEARCH_PAGE_SIZE);
+        fillIdentityResults(startNode, hardLimit - searchPageSize);
         remainingPending = false;
 
         imgLoader.reload();
@@ -231,8 +231,24 @@ contacts.Search = (function() {
   function fillInitialSearchPage() {
     hideProgressResults();
 
-    var firstContact = source.getFirstNode();
-    fillIdentityResults(firstContact, SEARCH_PAGE_SIZE);
+    var startContact = source.getFirstNode();
+    var numToFill = searchPageSize;
+
+    // Calculate rows visible on a single page the first time we get a row
+    // that we can measure.
+    if (startContact && searchPageSize < 1) {
+      fillIdentityResults(startContact, 1);
+
+      var viewHeight = searchList.getBoundingClientRect().height;
+      var rowHeight = searchList.children[0].getBoundingClientRect().height;
+      searchPageSize = Math.ceil(viewHeight / rowHeight);
+      hardLimit = ~~(3.5 * searchPageSize);
+
+      startContact = source.getNextNode(startContact);
+      numToFill = searchPageSize - 1;
+    }
+
+    fillIdentityResults(startContact, numToFill);
 
     imgLoader.reload();
   }
@@ -254,8 +270,8 @@ contacts.Search = (function() {
             hideProgressResults();
           }
           // Only an initial page of elements is loaded in the search list
-          if (Object.keys(currentSet).length <
-              SEARCH_PAGE_SIZE && !(contact.dataset.uuid in currentSet)) {
+          if (Object.keys(currentSet).length < searchPageSize &&
+              !(contact.dataset.uuid in currentSet)) {
             var clonedNode = getClone(contact);
             currentSet[contact.dataset.uuid] = clonedNode;
             searchList.appendChild(clonedNode);
@@ -287,7 +303,7 @@ contacts.Search = (function() {
           if (blurList === true) {
             searchTimer = window.setTimeout(function() {
               searchTimer = null;
-              addRemainingResults(searchableNodes, SEARCH_PAGE_SIZE);
+              addRemainingResults(searchableNodes, searchPageSize);
             },0);
           }
         }
@@ -357,7 +373,7 @@ contacts.Search = (function() {
     // new nodes matches our search query and it will have room
     // to show up on the initial screen.
     if (match) {
-      if (Object.keys(currentSet).length < SEARCH_PAGE_SIZE) {
+      if (Object.keys(currentSet).length < searchPageSize) {
         invalidateCache();
         search();
       } else if (!remainingPending) {

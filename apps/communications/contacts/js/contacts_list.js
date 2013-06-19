@@ -20,7 +20,6 @@ contacts.List = (function() {
       contactsCache = {},
       imagesLoaded = false,
       contactsLoadFinished = false,
-      cachedContacts = [],
       loadedContacts = {},
       viewHeight,
       renderTimer = null,
@@ -84,6 +83,8 @@ contacts.List = (function() {
     settingsView = document.querySelector('#view-settings .view-body-inner');
     noContacts = document.querySelector('#no-contacts');
 
+    viewHeight = scrollable.getBoundingClientRect().height;
+
     groupsList = document.getElementById('groups-list');
     groupsList.addEventListener('click', onClickHandler);
 
@@ -96,7 +97,11 @@ contacts.List = (function() {
 
     initOrder();
 
-    monitor = monitorChildWithTagVisibility(scrollable, 600, 300, 4, 'li',
+    var scrollMargin = ~~(viewHeight * 1.5);
+    var scrollDelta = ~~(scrollMargin / 2);
+
+    monitor = monitorChildWithTagVisibility(scrollable, scrollMargin,
+                                            scrollDelta, 4, 'li',
                                             onscreen, offscreen);
   };
 
@@ -401,7 +406,6 @@ contacts.List = (function() {
 
   var renderedChunks = 0;
   var CHUNK_SIZE = 20;
-  var NUM_VISIBLE_CONTACTS = 6;
   function loadChunk(chunk) {
     var isFirstChunk = (renderedChunks === 0);
     var nodes = [];
@@ -417,6 +421,11 @@ contacts.List = (function() {
     contacts.Search.appendNodes(nodes);
   }
 
+  // Default to infinite rows fitting on a page and then recalculate after
+  // the first row is added.
+  var MAX_INT = 0x7ffffff;
+  var rowsPerPage = MAX_INT;
+
   //Adds each contact to its group container
   function appendToList(contact) {
     var ph = createPlaceholder(contact);
@@ -425,7 +434,7 @@ contacts.List = (function() {
     var list = headers[group];
 
     // If above the fold for list, render immediately
-    if (list.children.length < (NUM_VISIBLE_CONTACTS-1)) {
+    if (list.children.length < rowsPerPage) {
       renderContact(ph, contact);
 
     // Otherwise save contact to render later
@@ -436,6 +445,12 @@ contacts.List = (function() {
     list.appendChild(ph);
     if (list.children.length === 1) {
       showGroupByList(list);
+    }
+
+    if (rowsPerPage === MAX_INT) {
+      var listHeight = list.getBoundingClientRect().height;
+      var rowHeight = listHeight / list.children.length;
+      rowsPerPage = Math.ceil(viewHeight / rowHeight);
     }
 
     return ph;
