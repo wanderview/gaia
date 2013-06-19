@@ -579,14 +579,12 @@ function monitorMultilevelChildVisibility(
   //    boundDir was BEFORE, the bottom of the node must come before the stop
   //    node's buttom.
   function runInRange(start, stop, boundDir, fn) {
-    if (!stop)
-      return;
     var curr = start;
     var currDepth = getDistance(container, curr);
     var justAscended = false;
 
     var stopBottom = stop.offsetTop + stop.clientHeight;
-    while (curr && curr !== stop) {
+    while (curr !== stop) {
       var currBottom = curr.offsetTop + curr.clientHeight;
       if ((boundDir === BEFORE && currBottom <= stopBottom) ||
           (boundDir === AFTER && curr.offsetTop >= start.offsetTop) ||
@@ -649,7 +647,7 @@ function monitorMultilevelChildVisibility(
   function getDistance(parent, child) {
     var depth = 0;
     var curr = child;
-    while (curr && curr !== parent) {
+    while (curr !== parent) {
       depth += 1;
       curr = curr.parentNode;
     }
@@ -659,10 +657,8 @@ function monitorMultilevelChildVisibility(
   function prevElement(elem) {
     var curr = elem;
     var prev = curr.previousElementSibling;
-    while (curr && prev === null) {
+    while (prev === null) {
       curr = curr.parentNode;
-      if (!curr)
-        break;
       prev = curr.previousElementSibling;
     }
     return prev;
@@ -671,10 +667,8 @@ function monitorMultilevelChildVisibility(
   function nextElement(elem) {
     var curr = elem;
     var next = curr.nextElementSibling;
-    while (curr && next === null) {
+    while (next === null) {
       curr = curr.parentNode;
-      if (!curr)
-        break;
       next = curr.nextElementSibling;
     }
     return next;
@@ -684,16 +678,14 @@ function monitorMultilevelChildVisibility(
     var curr = elem;
     var depth = 0;
     var prev = curr.previousElementSibling;
-    while (curr && prev === null) {
+    while (prev === null) {
       curr = curr.parentNode;
-      if (!curr)
-        break;
       prev = curr.previousElementSibling;
       depth -= 1;
     }
     curr = prev;
     var child = curr;
-    while (curr && depth < 0) {
+    while (depth < 0) {
       child = curr.lastElementChild;
       if (child == null) {
         child = curr;
@@ -709,10 +701,8 @@ function monitorMultilevelChildVisibility(
     var curr = elem;
     var depth = 0;
     var next = curr.nextElementSibling;
-    while (curr && next === null) {
+    while (next === null) {
       curr = curr.parentNode;
-      if (!curr)
-        break;
       next = curr.nextElementSibling;
       depth -= 1;
     }
