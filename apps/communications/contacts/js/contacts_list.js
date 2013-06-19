@@ -24,7 +24,9 @@ contacts.List = (function() {
       viewHeight,
       renderTimer = null,
       toRender = [],
-      monitor;
+      monitor,
+      loading = false,
+      cancelLoadCB = null;
 
   // Key on the async Storage
   var ORDER_KEY = 'order.lastname';
@@ -176,13 +178,18 @@ contacts.List = (function() {
       console.log('ERROR Retrieving contacts');
     };
 
+    var complete = function complete() {
+      initOrder(function onInitOrder() {
+        getContactsByGroup(onError, contacts);
+      });
+    };
+
     if (loaded || forceReset) {
-      resetDom();
+      resetDom(complete);
+      return;
     }
 
-    initOrder(function onInitOrder() {
-      getContactsByGroup(onError, contacts);
-    });
+    complete();
   };
 
   function getFbUid(devContact) {
@@ -696,6 +703,7 @@ contacts.List = (function() {
   };
 
   var getAllContacts = function cl_getAllContacts(errorCb, successCb) {
+    loading = true;
     initOrder(function onInitOrder() {
       var sortBy = (orderByLastName === true ? 'familyName' : 'givenName');
       var options = {
@@ -708,6 +716,15 @@ contacts.List = (function() {
       var num = 0;
       var chunk = [];
       cursor.onsuccess = function onsuccess(evt) {
+        // Cancel this load operation if requested
+        if (cancelLoadCB) {
+          // XXX: If bug 870125 is ever implemented, add a cancel/stop call
+          loading = false;
+          var cb = cancelLoadCB;
+          cancelLoadCB = null;
+          return cb();
+        }
+
         var contact = evt.target.result;
         if (contact) {
           chunk.push(contact);
@@ -725,6 +742,7 @@ contacts.List = (function() {
           toggleNoContactsScreen(showNoContacs);
           dispatchCustomEvent('listRendered');
           contactsLoadFinished = true;
+          loading = false;
         }
       };
       cursor.onerror = errorCb;
@@ -940,12 +958,18 @@ contacts.List = (function() {
   }
 
   // Reset the content of the list to 0
-  var resetDom = function resetDom() {
+  var resetDom = function resetDom(cb) {
+    if (loading) {
+      cancelLoadCB = resetDom.bind(null, cb);
+      return;
+    }
     contactsPhoto = [];
     utils.dom.removeChildNodes(groupsList);
     loaded = false;
 
     initHeaders();
+    if (cb)
+      cb();
   };
 
   // Initialize group headers at the beginning or after a dom reset
