@@ -948,7 +948,6 @@ suite('Render contacts list', function() {
         accentedCharName +=
           inChars[outChars.indexOf(givenName[i])] || givenName[i];
 
-      subject.resetSearch();
       subject.load(mockContacts);
 
       window.setTimeout(function() {
@@ -981,7 +980,6 @@ suite('Render contacts list', function() {
 
       mockContacts[contactIndex].givenName[0] = accentedCharName;
 
-      subject.resetSearch();
       subject.load(mockContacts);
 
       window.setTimeout(function() {
@@ -1031,7 +1029,7 @@ suite('Render contacts list', function() {
           var node = nodes[i];
           var mockContact = mockContacts[i];
           var expected = getStringToBeOrdered(mockContact, true);
-          assert.equal(printed.dataset['order'],
+          assert.equal(node.dataset['order'],
             Normalizer.escapeHTML(expected, true));
 
           var printed = node.querySelector('p');
@@ -1061,7 +1059,7 @@ suite('Render contacts list', function() {
         var expected = getStringToBeOrdered(mockContact, false);
 
         assert.equal(
-          name.dataset['order'], Normalizer.escapeHTML(expected, true));
+          node.dataset['order'], Normalizer.escapeHTML(expected, true));
 
         var name = node.querySelector('p');
 
