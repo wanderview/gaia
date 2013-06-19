@@ -291,7 +291,6 @@ contacts.List = (function() {
   // for rendering the contacts list
   // Images, Facebook data and searcheable info will be lazy loaded
   var renderContact = function renderContact(contactContainer, contact, fbContacts) {
-    contact = refillContactData(contact);
     if (!contactContainer) {
       contactContainer = createPlaceholder(contact);
     }
@@ -323,8 +322,19 @@ contacts.List = (function() {
   var createPlaceholder = function createPlaceholder(contact) {
     var ph = document.createElement('li');
     ph.dataset.uuid = contact.id;
+    var order = getStringToBeOrdered(contact);
+    ph.dataset.group = getGroupNameByOrderString(order);
+    // NOTE: We want the group value above to be based on the raw data so that
+    //       we get the und group if there is no name.  But we want to display
+    //       "noName" if there is nothing reasonable to show.  So recalculate
+    //       the order value if we're missing a name.  In the common case,
+    //       though, avoid calculating the order string twice.
+    if (refillContactData(contact)) {
+      order = getStringToBeOrdered(contact);
+    }
+    ph.dataset.order = order;
+    // Make sure to fill the search string after refillContactData()
     ph.dataset.search = getSearchString(contact);
-    ph.dataset.order = getStringToBeOrdered(contact);
     return ph;
   };
 
@@ -430,8 +440,7 @@ contacts.List = (function() {
   function appendToList(contact) {
     var ph = createPlaceholder(contact);
 
-    var group = getGroupName(contact);
-    var list = headers[group];
+    var list = headers[ph.dataset.group];
 
     // If above the fold for list, render immediately
     if (list.children.length < rowsPerPage) {
@@ -734,16 +743,15 @@ contacts.List = (function() {
       theContact = enrichedContact;
     }
 
-    var group = getGroupName(theContact);
-
-    var list = headers[group];
-
-    addToGroup(theContact, list);
+    var renderedNode = renderFullContact(theContact);
+    var list = headers[renderedNode.dataset.group];
+    addToGroup(renderedNode, list);
 
     // If is favorite add as well to the favorite group
     if (isFavorite(theContact)) {
       list = headers['favorites'];
-      addToGroup(theContact, list);
+      renderedNode = renderFullContact(theContact);
+      addToGroup(renderedNode, list);
     }
     toggleNoContactsScreen(false);
     FixedHeader.refresh();
@@ -758,26 +766,28 @@ contacts.List = (function() {
   };
 
   // Fills the contact data to display if no givenName and familyName
+  // Return true if data modified, otherwise false.
   var refillContactData = function refillContactData(contact) {
-    if (!hasName(contact)) {
-      contact.givenName = [];
-      if (contact.org && contact.org.length > 0) {
-        contact.givenName.push(contact.org[0]);
-      } else if (contact.tel && contact.tel.length > 0) {
-        contact.givenName.push(contact.tel[0].value);
-      } else if (contact.email && contact.email.length > 0) {
-        contact.givenName.push(contact.email[0].value);
-      } else {
-        contact.givenName.push(_('noName'));
-      }
+    if (hasName(contact))
+      return false;
+
+    contact.givenName = [];
+    if (contact.org && contact.org.length > 0) {
+      contact.givenName.push(contact.org[0]);
+    } else if (contact.tel && contact.tel.length > 0) {
+      contact.givenName.push(contact.tel[0].value);
+    } else if (contact.email && contact.email.length > 0) {
+      contact.givenName.push(contact.email[0].value);
+    } else {
+      contact.givenName.push(_('noName'));
     }
 
-    return contact;
+    return true;
   };
 
-  var addToGroup = function addToGroup(contact, list) {
-    var newLi;
-    var cName = getStringToBeOrdered(contact);
+  var addToGroup = function addToGroup(renderedNode, list) {
+    var newLi = renderedNode;
+    var cName = newLi.dataset.order;
 
     var liElems = list.getElementsByTagName('li');
     var len = liElems.length;
@@ -785,14 +795,12 @@ contacts.List = (function() {
       var liElem = liElems[i];
       var name = liElem.dataset.order;
       if (name.localeCompare(cName) >= 0) {
-        newLi = renderFullContact(contact);
         list.insertBefore(newLi, liElem);
         break;
       }
     }
 
-    if (!newLi) {
-      newLi = renderFullContact(contact);
+    if (i === len) {
       list.appendChild(newLi);
     }
 
@@ -873,10 +881,8 @@ contacts.List = (function() {
     return Normalizer.toAscii(ret.join('')).trim();
   };
 
-  var getGroupName = function getGroupName(contact) {
-    var ret = getStringToBeOrdered(contact);
-    ret = ret.charAt(0).toUpperCase();
-
+  var getGroupNameByOrderString = function getGroupNameByOrderString(order) {
+    var ret = order.charAt(0).toUpperCase();
     var code = ret.charCodeAt(0);
     if (code < 65 || code > 90) {
       ret = 'und';
