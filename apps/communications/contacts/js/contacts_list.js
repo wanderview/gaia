@@ -968,6 +968,7 @@ contacts.List = (function() {
     loaded = false;
 
     initHeaders();
+    FixedHeader.refresh();
     if (cb)
       cb();
   };
