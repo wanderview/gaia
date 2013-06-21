@@ -127,10 +127,10 @@ if (typeof window.importer === 'undefined') {
 
     var searchSource = {
       getNodes: function() {
-        return contactList.querySelectorAll("section>ol>li");
+        return contactList.querySelectorAll('section>ol>li');
       },
       getFirstNode: function() {
-        return contactList.querySelector("section>ol>li");
+        return contactList.querySelector('section>ol>li');
       },
       getNextNode: function(contact) {
         var out = contact.nextElementSibling;
@@ -148,7 +148,7 @@ if (typeof window.importer === 'undefined') {
         return contactsList.querySelector('[data-uuid="' + id + '"]');
       },
       getSearchText: function(node) {
-        return node.dataset.search
+        return node.dataset.search;
       },
       click: onSearchResultCb
     };
@@ -176,10 +176,6 @@ if (typeof window.importer === 'undefined') {
       utils.alphaScroll.init(params);
       contacts.Search.init(searchSource, true);
     };
-
-    function getDomNodes() {
-      return contentElement.querySelector(".block-item:not([data-uuid='#uid#']");
-    }
 
     function notifyLogout() {
        // Simulating logout finished to enable seamless closing of the iframe

@@ -73,7 +73,7 @@ contacts.List = (function() {
       return;
     renderContact(el, contact);
     delete loadedContacts[el.dataset.uuid];
-  }
+  };
 
   var init = function load(element) {
     _ = navigator.mozL10n.get;
@@ -297,33 +297,33 @@ contacts.List = (function() {
   // This method returns the very essential information needed
   // for rendering the contacts list
   // Images, Facebook data and searcheable info will be lazy loaded
-  var renderContact = function renderContact(contactContainer, contact, fbContacts) {
-    if (!contactContainer) {
-      contactContainer = createPlaceholder(contact);
+  var renderContact = function renderContact(container, contact, fbContacts) {
+    if (!container) {
+      container = createPlaceholder(contact);
     }
     var fbUid = getFbUid(contact);
     if (fbUid) {
-      contactContainer.dataset.fbUid = fbUid;
+      container.dataset.fbUid = fbUid;
     }
-    contactContainer.className = 'contact-item';
+    container.className = 'contact-item';
     var timestampDate = contact.updated || contact.published || new Date();
-    contactContainer.dataset.updated = timestampDate.getTime();
+    container.dataset.updated = timestampDate.getTime();
     // contactInner is a link with 3 p elements:
     // name, socaial marks and org
     var nameElement = getHighlightedName(contact);
-    contactContainer.appendChild(nameElement);
+    container.appendChild(nameElement);
     contactsCache[contact.id] = {
       contact: contact,
-      container: contactContainer
+      container: container
     };
-    renderOrg(contact, contactContainer, true);
+    renderOrg(contact, container, true);
 
     // Facebook data, favorites and images will be lazy loaded
     if (contact.category || contact.photo) {
       contactsPhoto.push(contact.id);
     }
-    contactContainer.dataset.rendered = true;
-    return contactContainer;
+    container.dataset.rendered = true;
+    return container;
   };
 
   var createPlaceholder = function createPlaceholder(contact) {
@@ -841,7 +841,7 @@ contacts.List = (function() {
   var showGroup = function showGroup(group) {
     var current = headers[group];
     showGroupByList(current);
-  }
+  };
 
   var showGroupByList = function showGroupByList(current) {
     var groupTitle = current.parentNode.children[0];

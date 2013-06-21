@@ -49,7 +49,7 @@ contacts.Search = (function() {
   //  click(event):         click event handler to use
   var init = function load(_source, defaultEnabled) {
     if (!_source)
-      throw new Error("Search requires a contact source!");
+      throw new Error('Search requires a contact source!');
 
     source = _source;
 
