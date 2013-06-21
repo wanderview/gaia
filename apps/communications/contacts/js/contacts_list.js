@@ -26,7 +26,8 @@ contacts.List = (function() {
       toRender = [],
       monitor,
       loading = false,
-      cancelLoadCB = null;
+      cancelLoadCB = null,
+      photosById = {};
 
   // Key on the async Storage
   var ORDER_KEY = 'order.lastname';
@@ -39,11 +40,6 @@ contacts.List = (function() {
   var NOP_FUNCTION = function() {};
 
   var onscreen = function(el) {
-    // If the contact has already been rendered there is no need to do extra
-    // work here.
-    if (el.dataset.rendered)
-      return;
-
     toRender.push(el);
 
     if (renderTimer)
@@ -54,25 +50,28 @@ contacts.List = (function() {
       monitor.pauseMonitoringMutations();
       while (toRender.length) {
         var row = toRender.shift();
-        renderLoadedContact(row);
+        var id = row.dataset.uuid;
+        renderLoadedContact(row, id);
+        renderPhoto(id, row);
       }
       monitor.resumeMonitoringMutations();
     }, 0);
   };
 
   var offscreen = function(el) {
-    // Nothing special is done here for now. It could be good to release images
-    // or other memory expensive stuffs here.
+    // TODO: batch this
+    releasePhoto(el);
   };
 
-  var renderLoadedContact = function(el) {
+  var renderLoadedContact = function(el, id) {
     if (el.dataset.rendered)
       return;
-    var contact = loadedContacts[el.dataset.uuid];
+    var id = id || el.dataset.uuid;
+    var contact = loadedContacts[id];
     if (!contact)
       return;
     renderContact(el, contact);
-    delete loadedContacts[el.dataset.uuid];
+    delete loadedContacts[id];
   };
 
   var init = function load(element) {
@@ -287,9 +286,8 @@ contacts.List = (function() {
     }
 
     //Render photo if there is one
-    if (contact.photo && contact.photo.length > 0) {
-      renderPhoto(contact, contactContainer);
-    }
+    if (updatePhoto(contact))
+      renderPhoto(contact.id, contactContainer);
 
     return contactContainer;
   };
@@ -443,6 +441,22 @@ contacts.List = (function() {
   var MAX_INT = 0x7ffffff;
   var rowsPerPage = MAX_INT;
 
+  function updatePhoto(contact) {
+    var id = contact.id;
+    var prevPhoto = photosById[id];
+    var newPhoto = Array.isArray(contact.photo) ? contact.photo[0] : null;
+
+    if (!prevPhoto && !newPhoto)
+      return false;
+
+    if (newPhoto)
+      photosById[id] = newPhoto;
+    else
+      delete photosById[id];
+
+    return true;
+  }
+
   //Adds each contact to its group container
   function appendToList(contact) {
     var ph = createPlaceholder(contact);
@@ -456,6 +470,7 @@ contacts.List = (function() {
     // Otherwise save contact to render later
     } else {
       loadedContacts[contact.id] = contact;
+      updatePhoto(contact);
     }
 
     list.appendChild(ph);
@@ -498,6 +513,7 @@ contacts.List = (function() {
     return contact.category && contact.category.indexOf('favorite') != -1;
   };
 
+  // TODO: see if we can remove this function...
   var lazyLoadImages = function lazyLoadImages() {
     if (!contactsPhoto || !Array.isArray(contactsPhoto)) {
       return;
@@ -509,7 +525,6 @@ contacts.List = (function() {
       if (current) {
         var contact = current.contact;
         var link = current.container;
-        renderPhoto(contact, link);
         if (isFavorite(contact)) {
           addToFavoriteList(link.cloneNode(true));
         }
@@ -530,15 +545,15 @@ contacts.List = (function() {
     window.dispatchEvent(event);
   };
 
-  var renderPhoto = function renderPhoto(contact, link) {
-    if (!contact.photo || !contact.photo.length) {
+  var renderPhoto = function renderPhoto(id, link) {
+    var photo = photosById[id];
+    if (!photo)
       return;
-    }
-    var photo = contact.photo;
+
     if (link.children[0].tagName == 'ASIDE') {
       var img = link.children[0].children[0];
       try {
-        img.dataset.src = window.URL.createObjectURL(contact.photo[0]);
+        img.dataset.src = window.URL.createObjectURL(photo);
       } catch (err) {
         img.dataset.src = '';
       }
@@ -554,13 +569,25 @@ contacts.List = (function() {
     var figure = photoTemplate.cloneNode(true);
     var img = figure.children[0];
     try {
-      img.dataset.src = window.URL.createObjectURL(contact.photo[0]);
+      img.dataset.src = window.URL.createObjectURL(photo);
     } catch (err) {
       img.dataset.src = '';
     }
 
     link.insertBefore(figure, link.children[0]);
     return;
+  };
+
+  var releasePhoto = function releasePhoto(el) {
+    // TODO: replace this with a selector?
+    if (!el.children || !el.firstChild || el.firstChild.tagName !== 'ASIDE')
+      return;
+
+    var img = el.firstChild.firstChild;
+    img.dataset.src = '';
+    img.src = '';
+    // TODO: move visited update to LazyLoader
+    el.dataset.visited = false;
   };
 
   var renderOrg = function renderOrg(contact, link, add) {
@@ -860,6 +887,7 @@ contacts.List = (function() {
         hideGroup(ol.dataset.group);
       }
     });
+    delete photosById[id];
     var selector = 'section header:not(.hide)';
     var visibleElements = groupsList.querySelectorAll(selector);
     var showNoContacts = visibleElements.length === 0;
@@ -1003,6 +1031,7 @@ contacts.List = (function() {
     'clearClickHandlers': clearClickHandlers,
     'setOrderByLastName': setOrderByLastName,
     'renderPhoto': renderPhoto,
+    'updatePhoto': updatePhoto,
     'renderFbData': renderFbData,
     'getHighlightedName': getHighlightedName,
     get chunkSize() {
