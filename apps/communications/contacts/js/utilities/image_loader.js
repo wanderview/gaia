@@ -125,8 +125,13 @@ if (!window.ImageLoader) {
       }
     } // update
 
+    function imageReleased(item) {
+      item.dataset.visited = 'false';
+    }
+
     this.reload = load;
     this.setResolver = setResolver;
     this.defaultLoad = defaultLoadImage;
+    this.imageReleased = imageReleased;
   };
 }

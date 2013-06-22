@@ -24,6 +24,8 @@ contacts.List = (function() {
       viewHeight,
       renderTimer = null,
       toRender = [],
+      releaseTimer = null,
+      toRelease = [],
       monitor,
       loading = false,
       cancelLoadCB = null,
@@ -52,15 +54,27 @@ contacts.List = (function() {
         var row = toRender.shift();
         var id = row.dataset.uuid;
         renderLoadedContact(row, id);
-        renderPhoto(id, row);
+        renderPhoto(row, id);
       }
       monitor.resumeMonitoringMutations();
     }, 0);
   };
 
   var offscreen = function(el) {
-    // TODO: batch this
-    releasePhoto(el);
+    toRelease.push(el);
+
+    if (releaseTimer)
+      return;
+
+    releaseTimer = setTimeout(function() {
+      releaseTimer = null;
+      monitor.pauseMonitoringMutations();
+        while (toRelease.length) {
+          var row = toRelease.shift();
+          releasePhoto(row);
+        }
+      monitor.resumeMonitoringMutations();
+    }, 0);
   };
 
   var renderLoadedContact = function(el, id) {
@@ -130,7 +144,9 @@ contacts.List = (function() {
     },
 
     clone: function(node) {
-      renderLoadedContact(node);
+      var id = node.dataset.uuid;
+      renderLoadedContact(node, id);
+      renderPhoto(node, id);
       return node.cloneNode();
     },
 
@@ -287,7 +303,7 @@ contacts.List = (function() {
 
     //Render photo if there is one
     if (updatePhoto(contact))
-      renderPhoto(contact.id, contactContainer);
+      renderPhoto(contactContainer, contact.id);
 
     return contactContainer;
   };
@@ -436,13 +452,8 @@ contacts.List = (function() {
     contacts.Search.appendNodes(nodes);
   }
 
-  // Default to infinite rows fitting on a page and then recalculate after
-  // the first row is added.
-  var MAX_INT = 0x7ffffff;
-  var rowsPerPage = MAX_INT;
-
-  function updatePhoto(contact) {
-    var id = contact.id;
+  function updatePhoto(contact, id) {
+    id = id || contact.id;
     var prevPhoto = photosById[id];
     var newPhoto = Array.isArray(contact.photo) ? contact.photo[0] : null;
 
@@ -456,6 +467,11 @@ contacts.List = (function() {
 
     return true;
   }
+
+  // Default to infinite rows fitting on a page and then recalculate after
+  // the first row is added.
+  var MAX_INT = 0x7ffffff;
+  var rowsPerPage = MAX_INT;
 
   //Adds each contact to its group container
   function appendToList(contact) {
@@ -545,7 +561,8 @@ contacts.List = (function() {
     window.dispatchEvent(event);
   };
 
-  var renderPhoto = function renderPhoto(id, link) {
+  var renderPhoto = function renderPhoto(link, id) {
+    id = id || link.dataset.uuid;
     var photo = photosById[id];
     if (!photo)
       return;
@@ -579,15 +596,13 @@ contacts.List = (function() {
   };
 
   var releasePhoto = function releasePhoto(el) {
-    // TODO: replace this with a selector?
-    if (!el.children || !el.firstChild || el.firstChild.tagName !== 'ASIDE')
+    var img = el.querySelector('aside>img');
+    if (!img)
       return;
 
-    var img = el.firstChild.firstChild;
     img.dataset.src = '';
     img.src = '';
-    // TODO: move visited update to LazyLoader
-    el.dataset.visited = false;
+    imgLoader.imageReleased(el);
   };
 
   var renderOrg = function renderOrg(contact, link, add) {

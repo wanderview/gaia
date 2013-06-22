@@ -18,10 +18,9 @@ fb.resolver = function(item, loader) {
       fbReq.onsuccess = function() {
         var fbData = fbReq.result;
         if (fbData) {
-          // TODO: this is a bit hackish... fix the update API
-          fbData.id = item.dataset.uuid;
-          if (contacts.List.updatePhoto(fbData)) {
-            contacts.List.renderPhoto(item.dataset.uuid, item);
+          var id = item.dataset.uuid;
+          if (contacts.List.updatePhoto(fbData, id)) {
+            contacts.List.renderPhoto(item, id);
             item.dataset.status = 'loaded';
             document.dispatchEvent(new CustomEvent('onupdate'));
           }
