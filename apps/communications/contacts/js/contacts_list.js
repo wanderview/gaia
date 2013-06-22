@@ -14,12 +14,8 @@ contacts.List = (function() {
       noContacts,
       imgLoader,
       orderByLastName = null,
-      contactsPhoto = [],
       photoTemplate,
       headers = {},
-      contactsCache = {},
-      imagesLoaded = false,
-      contactsLoadFinished = false,
       loadedContacts = {},
       viewHeight,
       renderTimer = null,
@@ -81,11 +77,14 @@ contacts.List = (function() {
     if (el.dataset.rendered)
       return;
     var id = id || el.dataset.uuid;
-    var contact = loadedContacts[id];
+    var group = el.dataset.group;
+    var contact = loadedContacts[id] ? loadedContacts[id][group] : null;
     if (!contact)
       return;
     renderContact(el, contact);
-    delete loadedContacts[id];
+    delete loadedContacts[id][group];
+    if (Object.keys(loadedContacts[id]).length < 1)
+      delete loadedContacts[id];
   };
 
   var init = function load(element) {
@@ -326,16 +325,8 @@ contacts.List = (function() {
     // name, socaial marks and org
     var nameElement = getHighlightedName(contact);
     container.appendChild(nameElement);
-    contactsCache[contact.id] = {
-      contact: contact,
-      container: container
-    };
     renderOrg(contact, container, true);
 
-    // Facebook data, favorites and images will be lazy loaded
-    if (contact.category || contact.photo) {
-      contactsPhoto.push(contact.id);
-    }
     container.dataset.rendered = true;
     return container;
   };
@@ -441,7 +432,8 @@ contacts.List = (function() {
     var isFirstChunk = (renderedChunks === 0);
     var nodes = [];
     for (var i = 0; i < chunk.length; i++) {
-      nodes.push(appendToList(chunk[i]));
+      var newNodes = appendToGroups(chunk[i]);
+      nodes.push.apply(newNodes);
     }
 
     if (isFirstChunk) {
@@ -473,11 +465,28 @@ contacts.List = (function() {
   var MAX_INT = 0x7ffffff;
   var rowsPerPage = MAX_INT;
 
-  //Adds each contact to its group container
-  function appendToList(contact) {
+  function appendToGroups(contact) {
+    updatePhoto(contact);
     var ph = createPlaceholder(contact);
+    var groups = [ph.dataset.group];
+    if (isFavorite(contact))
+      groups.push('favorites');
 
-    var list = headers[ph.dataset.group];
+    var nodes = [];
+
+    for (var i in groups) {
+      ph = appendToList(contact, groups[i], ph);
+      nodes.push(ph);
+      ph = null;
+    }
+
+    return nodes;
+  }
+
+  //Adds each contact to its group container
+  function appendToList(contact, group, ph) {
+    ph = ph || createPlaceholder(contact);
+    var list = headers[group];
 
     // If above the fold for list, render immediately
     if (list.children.length < rowsPerPage) {
@@ -485,8 +494,10 @@ contacts.List = (function() {
 
     // Otherwise save contact to render later
     } else {
-      loadedContacts[contact.id] = contact;
-      updatePhoto(contact);
+      if (!loadedContacts[contact.id])
+        loadedContacts[contact.id] = {};
+
+      loadedContacts[contact.id][group] = contact;
     }
 
     list.appendChild(ph);
@@ -506,13 +517,6 @@ contacts.List = (function() {
   // Methods executed after rendering the list
   // by first time
   var onListRendered = function onListRendered() {
-    window.addEventListener('finishLazyLoading', function finishLazyLoading() {
-      if (imagesLoaded) {
-        imagesLoaded = false;
-        window.removeEventListener('finishLazyLoading', finishLazyLoading);
-        contactsCache = {};
-      }
-    });
     FixedHeader.refresh();
 
     PerformanceTestingHelper.dispatch('startup-path-done');
@@ -529,31 +533,11 @@ contacts.List = (function() {
     return contact.category && contact.category.indexOf('favorite') != -1;
   };
 
-  // TODO: see if we can remove this function...
   var lazyLoadImages = function lazyLoadImages() {
-    if (!contactsPhoto || !Array.isArray(contactsPhoto)) {
-      return;
-    }
-    var favs = false;
-    for (var i = 0; i < contactsPhoto.length; i++) {
-      var id = contactsPhoto[i];
-      var current = contactsCache[id];
-      if (current) {
-        var contact = current.contact;
-        var link = current.container;
-        if (isFavorite(contact)) {
-          addToFavoriteList(link.cloneNode(true));
-        }
-      }
-    }
-    contactsPhoto = [];
     LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
       imgLoader.setResolver(fb.resolver);
       imgLoader.reload();
     });
-
-    imagesLoaded = true;
-    dispatchCustomEvent('finishLazyLoading');
   };
 
   var dispatchCustomEvent = function dispatchCustomEvent(eventName) {
@@ -706,7 +690,6 @@ contacts.List = (function() {
       loadChunk(contacts);
       onListRendered();
       dispatchCustomEvent('listRendered');
-      contactsLoadFinished = true;
       return;
     }
     getAllContacts(errorCb, loadChunk);
@@ -783,7 +766,6 @@ contacts.List = (function() {
           var showNoContacs = (num === 0);
           toggleNoContactsScreen(showNoContacs);
           dispatchCustomEvent('listRendered');
-          contactsLoadFinished = true;
           loading = false;
         }
       };
@@ -1006,7 +988,6 @@ contacts.List = (function() {
       cancelLoadCB = resetDom.bind(null, cb);
       return;
     }
-    contactsPhoto = [];
     utils.dom.removeChildNodes(groupsList);
     loaded = false;
 
