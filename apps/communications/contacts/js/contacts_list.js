@@ -12,7 +12,7 @@ contacts.List = (function() {
       scrollable,
       settingsView,
       noContacts,
-      imgLoader,
+      imgLoader = null,
       orderByLastName = null,
       photoTemplate,
       headers = {},
@@ -22,7 +22,7 @@ contacts.List = (function() {
       toRender = [],
       releaseTimer = null,
       toRelease = [],
-      monitor,
+      monitor = null,
       loading = false,
       cancelLoadCB = null,
       photosById = {};
@@ -45,14 +45,12 @@ contacts.List = (function() {
 
     renderTimer = setTimeout(function() {
       renderTimer = null;
-      monitor.pauseMonitoringMutations();
       while (toRender.length) {
         var row = toRender.shift();
         var id = row.dataset.uuid;
         renderLoadedContact(row, id);
         renderPhoto(row, id);
       }
-      monitor.resumeMonitoringMutations();
     }, 0);
   };
 
@@ -107,16 +105,20 @@ contacts.List = (function() {
     var selector = 'header:not(.hide)';
     FixedHeader.init('#groups-container', '#fixed-container', selector);
 
-    imgLoader = new ImageLoader('#groups-container', 'li');
-
     initOrder();
 
-    var scrollMargin = ~~(viewHeight * 1.5);
-    var scrollDelta = ~~(scrollMargin / 2);
+    LazyLoader.load(['/contacts/js/utilities/image_loader.js'], function() {
+      imgLoader = new ImageLoader('#groups-container', 'li');
+    });
 
-    monitor = monitorChildWithTagVisibility(scrollable, scrollMargin,
-                                            scrollDelta, 4, 'li',
-                                            onscreen, offscreen);
+    var vm_file = '/shared/js/multilevel_visibility_monitor.js';
+    LazyLoader.load([vm_file], function() {
+      var scrollMargin = ~~(viewHeight * 1.5);
+      var scrollDelta = ~~(scrollMargin / 2);
+      monitor = monitorChildWithTagVisibility(scrollable, scrollMargin,
+                                              scrollDelta, 4, 'li',
+                                              onscreen, offscreen);
+    });
   };
 
   //
@@ -442,6 +444,7 @@ contacts.List = (function() {
     }
     renderedChunks++;
     contacts.Search.appendNodes(nodes);
+    // TODO: consider appending to imgLoader here
   }
 
   function updatePhoto(contact, id) {
@@ -551,8 +554,8 @@ contacts.List = (function() {
     if (!photo)
       return;
 
-    if (link.children[0].tagName == 'ASIDE') {
-      var img = link.children[0].children[0];
+    var img = link.querySelector('aside>img');
+    if (img) {
       try {
         img.dataset.src = window.URL.createObjectURL(photo);
       } catch (err) {
