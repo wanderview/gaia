@@ -428,24 +428,32 @@ contacts.List = (function() {
     return ele;
   }
 
-  var renderedChunks = 0;
   var CHUNK_SIZE = 20;
   function loadChunk(chunk) {
-    var isFirstChunk = (renderedChunks === 0);
     var nodes = [];
     for (var i = 0; i < chunk.length; i++) {
+      if (i === rowsPerPage)
+        notifyAboveTheFold();
+
       var newNodes = appendToGroups(chunk[i]);
       nodes.push.apply(newNodes);
     }
 
-    if (isFirstChunk) {
-      // Performance testing
-      PerformanceTestingHelper.dispatch('above-the-fold-ready');
-    }
-    renderedChunks++;
+    if (i < rowsPerPage)
+      notifyAboveTheFold();
+
     contacts.Search.appendNodes(nodes);
     // TODO: consider appending to imgLoader here
   }
+
+  var notifiedAboveTheFold = false;
+  function notifyAboveTheFold() {
+    if (notifiedAboveTheFold)
+      return;
+
+    notifiedAboveTheFold = true;
+    PerformanceTestingHelper.dispatch('above-the-fold-ready');
+  };
 
   function updatePhoto(contact, id) {
     id = id || contact.id;
@@ -683,7 +691,7 @@ contacts.List = (function() {
       });
       return;
     }
-    renderedChunks = 0;
+    notifiedAboveTheFold = false;
     if (contacts) {
       if (!contacts.length) {
         toggleNoContactsScreen(true);
