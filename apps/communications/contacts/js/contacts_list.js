@@ -436,14 +436,13 @@ contacts.List = (function() {
         notifyAboveTheFold();
 
       var newNodes = appendToGroups(chunk[i]);
-      nodes.push.apply(newNodes);
+      nodes.push.apply(nodes, newNodes);
     }
 
     if (i < rowsPerPage)
       notifyAboveTheFold();
 
     contacts.Search.appendNodes(nodes);
-    // TODO: consider appending to imgLoader here
   }
 
   var notifiedAboveTheFold = false;
