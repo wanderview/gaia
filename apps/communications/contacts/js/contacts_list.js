@@ -79,7 +79,7 @@ contacts.List = (function() {
     var contact = loadedContacts[id] ? loadedContacts[id][group] : null;
     if (!contact)
       return;
-    renderContact(el, contact);
+    renderContact(contact, el);
     delete loadedContacts[id][group];
     if (Object.keys(loadedContacts[id]).length < 1)
       delete loadedContacts[id];
@@ -276,46 +276,11 @@ contacts.List = (function() {
     headers[group] = contactsContainer;
   };
 
-  var renderFullContact = function renderFullContact(contact, fbContacts) {
-    var contactContainer = renderContact(null, contact);
-    var name = contactContainer.children[0];
-
-    // Label the contact concerning social networks
-    if (contact.category) {
-      var marks = buildSocialMarks(contact.category);
-      if (marks.length > 0) {
-        var meta;
-        if (!contact.org || contact.org.length === 0 ||
-          contact.org[0].length === 0) {
-            addOrgMarkup(contactContainer);
-            meta = contactContainer.children[1];
-            contactContainer.appendChild(meta);
-            marks[0].classList.add('notorg');
-        }
-        var metaFragment = document.createDocumentFragment();
-        marks.forEach(function(mark) {
-          metaFragment.appendChild(mark);
-        });
-        meta = contactContainer.children[1];
-        var org = meta.querySelector('span');
-        meta.insertBefore(metaFragment, org);
-      }
-    }
-
-    //Render photo if there is one
-    if (updatePhoto(contact))
-      renderPhoto(contactContainer, contact.id);
-
-    return contactContainer;
-  };
-
-  // This method returns the very essential information needed
-  // for rendering the contacts list
-  // Images, Facebook data and searcheable info will be lazy loaded
-  var renderContact = function renderContact(container, contact, fbContacts) {
-    if (!container) {
-      container = createPlaceholder(contact);
-    }
+  // Render basic DOM structure and text for the contact.  If a placeholder
+  // has already been created then it may be provided in the optional second
+  // argument.  Photos and social marks are lazy loaded.
+  var renderContact = function renderContact(contact, container) {
+    container = container || createPlaceholder(contact);
     var fbUid = getFbUid(contact);
     if (fbUid) {
       container.dataset.fbUid = fbUid;
@@ -333,6 +298,10 @@ contacts.List = (function() {
     return container;
   };
 
+  // Create a mostly empty list item as a placeholder for the contact.  All
+  // visibile DOM elements will be rendered later via the visibility monitor.
+  // This function ensures that necessary meta data is defined in the node
+  // dataset.
   var createPlaceholder = function createPlaceholder(contact) {
     var ph = document.createElement('li');
     ph.dataset.uuid = contact.id;
@@ -435,7 +404,7 @@ contacts.List = (function() {
       if (i === rowsPerPage)
         notifyAboveTheFold();
 
-      var newNodes = appendToGroups(chunk[i]);
+      var newNodes = appendToLists(chunk[i]);
       nodes.push.apply(nodes, newNodes);
     }
 
@@ -454,28 +423,12 @@ contacts.List = (function() {
     PerformanceTestingHelper.dispatch('above-the-fold-ready');
   };
 
-  function updatePhoto(contact, id) {
-    id = id || contact.id;
-    var prevPhoto = photosById[id];
-    var newPhoto = Array.isArray(contact.photo) ? contact.photo[0] : null;
-
-    if (!prevPhoto && !newPhoto)
-      return false;
-
-    if (newPhoto)
-      photosById[id] = newPhoto;
-    else
-      delete photosById[id];
-
-    return true;
-  }
-
   // Default to infinite rows fitting on a page and then recalculate after
   // the first row is added.
   var MAX_INT = 0x7ffffff;
   var rowsPerPage = MAX_INT;
 
-  function appendToGroups(contact) {
+  function appendToLists(contact) {
     updatePhoto(contact);
     var ph = createPlaceholder(contact);
     var groups = [ph.dataset.group];
@@ -500,7 +453,7 @@ contacts.List = (function() {
 
     // If above the fold for list, render immediately
     if (list.children.length < rowsPerPage) {
-      renderContact(ph, contact);
+      renderContact(contact, ph);
 
     // Otherwise save contact to render later
     } else {
@@ -555,6 +508,29 @@ contacts.List = (function() {
     window.dispatchEvent(event);
   };
 
+  // Update photo reference cache for given contact. This is used to render
+  // the photo when a contact row is on screen after we've thrown away the
+  // full contact object.
+  var updatePhoto = function updatePhoto(contact, id) {
+    id = id || contact.id;
+    var prevPhoto = photosById[id];
+    var newPhoto = Array.isArray(contact.photo) ? contact.photo[0] : null;
+
+    // Do nothing if photo did not change
+    if ((!prevPhoto && !newPhoto) || (prevPhoto === newPhoto))
+      return false;
+
+    if (newPhoto)
+      photosById[id] = newPhoto;
+    else
+      delete photosById[id];
+
+    return true;
+  };
+
+  // "Render" the photo by setting the img tag's dataset-src attribute to the
+  // value in our photo cache.  This in turn will allow the imgLoader to load
+  // the image once we have stopped scrolling.
   var renderPhoto = function renderPhoto(link, id) {
     id = id || link.dataset.uuid;
     var photo = photosById[id];
@@ -589,6 +565,8 @@ contacts.List = (function() {
     return;
   };
 
+  // Remove the image for the given list item.  Leave the photo in our cache,
+  // however, so the image can be reloaded later.
   var releasePhoto = function releasePhoto(el) {
     var img = el.querySelector('aside>img');
     if (!img)
@@ -715,21 +693,7 @@ contacts.List = (function() {
 
     request.onsuccess = function findCallback(e) {
       var result = e.target.result[0];
-
-      if (fb.isFbContact(result)) {
-        // Fb data for the contact has to be obtained
-        var fbContact = new fb.Contact(result);
-        var fbReq = fbContact.getData();
-        fbReq.onsuccess = function() {
-          successCb(result, fbReq.result);
-        };
-        fbReq.onerror = function() {
-          successCb(result);
-        };
-      } else {
-          successCb(result);
-      }
-
+      successCb(result);
     }; // request.onsuccess
 
     if (typeof errorCb === 'function') {
@@ -783,27 +747,16 @@ contacts.List = (function() {
     });
   };
 
-  /*
-    Two contacts are returned because the enrichedContact is readonly
-    and if the Contact is edited we need to prevent saving
-    FB data on the mozContacts DB.
-  */
-  var addToList = function addToList(contact, enrichedContact) {
-    var theContact = contact;
-
-    if (enrichedContact) {
-      theContact = enrichedContact;
-    }
-
-    var renderedNode = renderFullContact(theContact);
+  var addToList = function addToList(contact) {
+    updatePhoto(contact);
+    var renderedNode = renderContact(contact);
     var list = headers[renderedNode.dataset.group];
     addToGroup(renderedNode, list);
 
     // If is favorite add as well to the favorite group
-    if (isFavorite(theContact)) {
+    if (isFavorite(contact)) {
       list = headers['favorites'];
-      renderedNode = renderFullContact(theContact);
-      addToGroup(renderedNode, list);
+      addToGroup(renderedNode.cloneNode(), list);
     }
     toggleNoContactsScreen(false);
     FixedHeader.refresh();
@@ -859,9 +812,6 @@ contacts.List = (function() {
     if (list.children.length === 1) {
       showGroupByList(list);
     }
-
-    // Mark as loaded to avoid data duplication by the resolver
-    newLi.dataset.status = 'loaded';
 
     return list.children.length;
   };
@@ -947,13 +897,8 @@ contacts.List = (function() {
   var refresh = function refresh(id, callback, op) {
     remove(id);
     if (typeof(id) == 'string') {
-      getContactById(id, function(contact, fbData) {
-        var enrichedContact = null;
-        if (fb.isFbContact(contact)) {
-          var fbContact = new fb.Contact(contact);
-          enrichedContact = fbContact.merge(fbData);
-        }
-        addToList(contact, enrichedContact);
+      getContactById(id, function(contact) {
+        addToList(contact);
         if (callback) {
           callback(id);
         }
