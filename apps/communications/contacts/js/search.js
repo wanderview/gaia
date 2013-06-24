@@ -335,10 +335,7 @@ contacts.Search = (function() {
   // nodes as they are loaded.
   var appendNodes = function appendNodes(nodes) {
     if (contactNodes) {
-      for (var i in nodes) {
-        var node = nodes[i];
-        contactNodes.push(node);
-      }
+      contactNodes.push.apply(contactNodes, nodes);
     }
 
     // If there are no searches in progress, then we are done
