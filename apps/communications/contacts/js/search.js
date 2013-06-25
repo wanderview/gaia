@@ -64,41 +64,46 @@ contacts.Search = (function() {
 
   var initialized = false;
 
-  var doInit = function doInit() {
+  var doInit = function doInit(callback) {
     if (initialized) {
+      callback();
       return;
     }
 
-    initialized = true;
-    searchBox = document.getElementById('search-contact');
-    var resetButton = searchBox.nextElementSibling;
-    resetButton.addEventListener('ontouchstart' in window ? 'touchstart' :
-                                 'mousedown', function() {
-      searchBox.value = '';
-      searchBox.focus();
-      resetState();
-      window.setTimeout(fillInitialSearchPage, 0);
-    });
+    LazyLoader.load(['/contacts/js/utilities/dom.js'], function() {
+      initialized = true;
+      searchBox = document.getElementById('search-contact');
+      var resetButton = searchBox.nextElementSibling;
+      resetButton.addEventListener('ontouchstart' in window ? 'touchstart' :
+                                   'mousedown', function() {
+        searchBox.value = '';
+        searchBox.focus();
+        resetState();
+        window.setTimeout(fillInitialSearchPage, 0);
+      });
 
-    searchList.parentNode.addEventListener('touchstart', function() {
-      if (searchableNodes && remainingPending) {
-        addRemainingResults(searchableNodes, searchPageSize);
-      }
-      blurList = true;
-    });
-    searchNoResult = document.getElementById('no-result');
-    searchProgress = document.getElementById('search-progress');
-    searchBox.addEventListener('blur', function() {
-      window.setTimeout(onSearchBlur, 0);
-    });
+      searchList.parentNode.addEventListener('touchstart', function() {
+        if (searchableNodes && remainingPending) {
+          addRemainingResults(searchableNodes, searchPageSize);
+        }
+        blurList = true;
+      });
+      searchNoResult = document.getElementById('no-result');
+      searchProgress = document.getElementById('search-progress');
+      searchBox.addEventListener('blur', function() {
+        window.setTimeout(onSearchBlur, 0);
+      });
 
-    searchBox.addEventListener('focus', function() {
-      blurList = false;
-    });
+      searchBox.addEventListener('focus', function() {
+        blurList = false;
+      });
 
-    imgLoader = new ImageLoader('#groups-list-search', 'li');
-    LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
-      imgLoader.setResolver(fb.resolver);
+      imgLoader = new ImageLoader('#groups-list-search', 'li');
+      LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
+        imgLoader.setResolver(fb.resolver);
+      });
+
+      callback();
     });
   };
 
@@ -220,13 +225,14 @@ contacts.Search = (function() {
     if (!inSearchMode) {
       window.addEventListener('input', onInput);
       searchView.classList.add('insearchmode');
-      doInit();
-      fillInitialSearchPage();
-      inSearchMode = true;
-      emptySearch = true;
+      doInit(function() {
+        fillInitialSearchPage();
+        inSearchMode = true;
+        emptySearch = true;
 
-      setTimeout(function nextTick() {
-        searchBox.focus();
+        setTimeout(function nextTick() {
+          searchBox.focus();
+        });
       });
     }
   };

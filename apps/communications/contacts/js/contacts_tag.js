@@ -20,38 +20,45 @@ var ContactsTag = (function() {
     }
   };
 
-  var fillTagOptions = function fillTagOptions(target, _originalTag, options) {
-    utils.dom.removeChildNodes(target);
-    originalTag = _originalTag;
+  var fillTagOptions = function fillTagOptions(target, _originalTag,
+                                               options, callback) {
+    LazyLoader.load(['/contacts/js/utilities/dom.js'], function() {
+      utils.dom.removeChildNodes(target);
+      originalTag = _originalTag;
 
-    var selectedLink;
-    for (var option in options) {
-      var tagLink = document.createElement('button');
-      tagLink.dataset.index = option;
-      tagLink.textContent = options[option].value;
-      tagLink.setAttribute('data-l10n-id', options[option].type);
-      tagLink.setAttribute('data-value', options[option].type);
+      var selectedLink;
+      for (var option in options) {
+        var tagLink = document.createElement('button');
+        tagLink.dataset.index = option;
+        tagLink.textContent = options[option].value;
+        tagLink.setAttribute('data-l10n-id', options[option].type);
+        tagLink.setAttribute('data-value', options[option].type);
 
-      tagLink.addEventListener('click', function(event) {
-        var tag = event.target;
-        selectTag(tag);
-        event.preventDefault();
-      });
+        tagLink.addEventListener('click', function(event) {
+          var tag = event.target;
+          selectTag(tag);
+          event.preventDefault();
+        });
 
-      if (originalTag.dataset.value == options[option].type) {
-        selectedLink = tagLink;
+        if (originalTag.dataset.value == options[option].type) {
+          selectedLink = tagLink;
+        }
+
+        var tagItem = document.createElement('li');
+        tagItem.appendChild(tagLink);
+        target.appendChild(tagItem);
       }
 
-      var tagItem = document.createElement('li');
-      tagItem.appendChild(tagLink);
-      target.appendChild(tagItem);
-    }
+      customTag.value = '';
+      if (!selectedLink && originalTag.textContent) {
+        customTag.value = originalTag.textContent;
+      }
+      selectTag(selectedLink);
 
-    customTag.value = '';
-    if (!selectedLink && originalTag.textContent) {
-      customTag.value = originalTag.textContent;
-    }
-    selectTag(selectedLink);
+      if (callback) {
+        callback();
+      }
+    });
   };
 
   var selectTag = function selectTag(tag) {

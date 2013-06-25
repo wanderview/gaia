@@ -165,12 +165,16 @@ contacts.Form = (function() {
     deviceContact = contact;
     var renderedContact = fbContactData[0] || deviceContact;
 
-    resetForm();
-    (renderedContact && renderedContact.id) ?
-       showEdit(renderedContact, fromUpdateActivity) : showAdd(renderedContact);
-    if (callback) {
-      callback();
-    }
+    LazyLoader.load(['/contacts/js/utilities/dom.js',
+                     '/shared/js/text_normalizer.js'], function() {
+      resetForm();
+      (renderedContact && renderedContact.id) ?
+        showEdit(renderedContact, fromUpdateActivity) :
+        showAdd(renderedContact);
+      if (callback) {
+        callback();
+      }
+    });
   };
 
   var showEdit = function showEdit(contact, fromUpdateActivity) {
@@ -821,7 +825,6 @@ contacts.Form = (function() {
   return {
     'init': init,
     'render': render,
-    'insertField': insertField,
     'saveContact': saveContact,
     'onNewFieldClicked': onNewFieldClicked,
     'pickImage': pickImage

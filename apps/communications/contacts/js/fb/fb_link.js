@@ -492,9 +492,15 @@ if (!fb.link) {
       }
     };
 
-    link.init = function() {
+    link.init = function(callback) {
       mainSection = document.querySelector('#main');
       viewButton = document.querySelector('#view-all');
+      LazyLoader.load(['/shared/js/text_normalizer.js',
+                       '/contacts/js/utilities/dom.js'], function() {
+        if (callback) {
+          callback();
+        }
+      });
     };
 
     function retryOnErrorCb() {

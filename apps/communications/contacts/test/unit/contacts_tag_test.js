@@ -1,5 +1,6 @@
 'use strict';
 
+require('/shared/js/lazy_loader.js');
 requireApp('communications/contacts/test/unit/helper.js');
 requireApp('communications/contacts/test/unit/mock_selection_dom.js.html');
 requireApp('communications/contacts/js/utilities/dom.js');
@@ -37,13 +38,15 @@ suite('Fill tag options', function() {
       customTag.addEventListener('touchend', subject.touchCustomTag);
     });
 
-    test('render tag selection form', function() {
+    test('render tag selection form', function(done) {
       subject.fillTagOptions(container, originalTag,
-                             testTagOptions['test-type']);
-      assert.equal(container.querySelector('button[data-index="0"]')
-                   .textContent, 'value1');
-      assert.equal(container.querySelector('button[data-index="1"]')
-                   .textContent, 'value2');
+                             testTagOptions['test-type'], function() {
+        assert.equal(container.querySelector('button[data-index="0"]')
+                     .textContent, 'value1');
+        assert.equal(container.querySelector('button[data-index="1"]')
+                     .textContent, 'value2');
+        done();
+      });
     });
 
     test('choose a tag', function() {

@@ -1,3 +1,5 @@
+require('/shared/js/lazy_loader.js');
+require('/shared/js/text_normalizer.js');
 requireApp('communications/contacts/test/unit/mock_link.html.js');
 requireApp('communications/contacts/test/unit/mock_l10n.js');
 requireApp('communications/facebook/test/unit/mock_curtain.js');
@@ -33,7 +35,7 @@ if (!this.fb) {
 
 suite('Link Friends Test Suite', function() {
 
-  suiteSetup(function() {
+  suiteSetup(function(done) {
     realImageLoader = window.ImageLoader;
     window.ImageLoader = MockImageLoader;
 
@@ -50,7 +52,9 @@ suite('Link Friends Test Suite', function() {
 
     linkProposalChild = linkProposal.firstElementChild;
 
-    fb.link.init();
+    fb.link.init(function() {
+      done();
+    });
   });
 
 

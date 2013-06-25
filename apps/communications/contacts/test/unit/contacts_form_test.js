@@ -1,6 +1,8 @@
 //Avoiding lint checking the DOM file renaming it to .html
 requireApp('communications/contacts/test/unit/mock_form_dom.js.html');
 
+require('/shared/js/lazy_loader.js');
+require('/shared/js/text_normalizer.js');
 requireApp('communications/contacts/js/contacts_form.js');
 requireApp('communications/contacts/js/utilities/templates.js');
 requireApp('communications/contacts/js/utilities/dom.js');
@@ -61,17 +63,19 @@ suite('Render contact form', function() {
   });
 
   suite('Render add form', function() {
-    test('without params', function() {
-      subject.render();
-      var toCheck = ['phone', 'address', 'email', 'note'];
-      for (var i = 0; i < toCheck.length; i++) {
-        var element = 'add-' + toCheck[i];
-        var cont = document.body.innerHTML;
-        assert.isTrue(cont.indexOf(element + '-0') > -1);
-        assertEmpty(element + '-0');
-        assert.isTrue(cont.indexOf(element + '-1') == -1);
-        assert.isTrue(footer.classList.contains('hide'));
-      }
+    test('without params', function(done) {
+      subject.render(null, function() {
+        var toCheck = ['phone', 'address', 'email', 'note'];
+        for (var i = 0; i < toCheck.length; i++) {
+          var element = 'add-' + toCheck[i];
+          var cont = document.body.innerHTML;
+          assert.isTrue(cont.indexOf(element + '-0') > -1);
+          assertEmpty(element + '-0');
+          assert.isTrue(cont.indexOf(element + '-1') == -1);
+          assert.isTrue(footer.classList.contains('hide'));
+        }
+        done();
+      });
     });
 
     test('with tel params', function() {

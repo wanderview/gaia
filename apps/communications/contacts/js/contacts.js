@@ -418,12 +418,12 @@ var Contacts = (function() {
       options[i].value = _(options[i].type);
     }
     ContactsTag.setCustomTag(customTag);
-    ContactsTag.fillTagOptions(tagsList, contactTag, options);
-
-    navigation.go('view-select-tag', 'right-left');
-    if (document.activeElement) {
-      document.activeElement.blur();
-    }
+    ContactsTag.fillTagOptions(tagsList, contactTag, options, function() {
+      navigation.go('view-select-tag', 'right-left');
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+    });
   };
 
   var sendSms = function sendSms(number) {
@@ -731,7 +731,6 @@ var Contacts = (function() {
       '/contacts/js/utilities/import_sim_contacts.js',
       '/contacts/js/utilities/status.js',
       '/contacts/js/utilities/overlay.js',
-      '/contacts/js/utilities/dom.js',
       '/shared/style_unstable/progress_activity.css',
       '/shared/style/status.css',
       '/shared/style/switches.css',
