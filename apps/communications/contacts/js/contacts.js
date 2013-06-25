@@ -431,8 +431,11 @@ var Contacts = (function() {
   };
 
   var sendSms = function sendSms(number) {
-    if (!ActivityHandler.currentlyHandling)
-      SmsIntegration.sendSms(number);
+    if (!ActivityHandler.currentlyHandling) {
+      LazyLoader.load(['/contacts/js/sms_integration.js'], function() {
+        SmsIntegration.sendSms(number);
+      });
+    }
   };
 
   var callOrPick = function callOrPick(number) {
@@ -745,7 +748,6 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/sms_integration.js',
       '/contacts/js/utilities/sdcard.js',
       '/contacts/js/utilities/vcard_parser.js',
       '/contacts/js/utilities/import_sim_contacts.js',
