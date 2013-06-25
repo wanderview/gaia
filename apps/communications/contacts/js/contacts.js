@@ -534,11 +534,15 @@ var Contacts = (function() {
   };
 
   var saveContact = function saveContact() {
-    return contacts.Form.saveContact();
+    LazyLoader.load(['/contacts/js/contacts_form.js'], function() {
+      contacts.Form.saveContact();
+    });
   };
 
   var newField = function newField(evt) {
-    return contacts.Form.onNewFieldClicked(evt);
+    LazyLoader.load(['/contacts/js/contacts_form.js'], function() {
+      contacts.Form.onNewFieldClicked(evt);
+    });
   };
 
   var loadFacebook = function loadFacebook(callback) {
@@ -559,11 +563,13 @@ var Contacts = (function() {
     if (formReady) {
       callback();
     } else {
-      initDetails(function onDetails() {
-        loadFacebook(function fbReady() {
-          contactsForm = contacts.Form;
-          contactsForm.init(TAG_OPTIONS);
-          callback();
+      LazyLoader.load(['/contacts/js/contacts_form.js'], function() {
+        initDetails(function onDetails() {
+          loadFacebook(function fbReady() {
+            contactsForm = contacts.Form;
+            contactsForm.init(TAG_OPTIONS);
+            callback();
+          });
         });
       });
       formReady = true;
@@ -738,7 +744,6 @@ var Contacts = (function() {
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
       '/contacts/js/import_utils.js',
-      '/contacts/js/contacts_form.js',
       '/dialer/js/telephony_helper.js',
       '/contacts/js/sms_integration.js',
       '/contacts/js/utilities/sdcard.js',
