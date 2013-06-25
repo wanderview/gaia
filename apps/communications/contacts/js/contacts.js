@@ -278,11 +278,13 @@ var Contacts = (function() {
     switch (numOfData) {
       case 0:
         // If no required type of data
-        var dismiss = {
-          title: _('ok'),
-          callback: ConfirmDialog.hide
-        };
-        ConfirmDialog.show(null, noDataStr, dismiss);
+        LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+          var dismiss = {
+            title: _('ok'),
+            callback: ConfirmDialog.hide
+          };
+          ConfirmDialog.show(null, noDataStr, dismiss);
+        });
         break;
       case 1:
         // if one required type of data
@@ -717,7 +719,6 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/confirm_dialog.js',
       '/contacts/js/contacts_tag.js',
       '/contacts/js/import_utils.js',
       '/contacts/js/utilities/normalizer.js',

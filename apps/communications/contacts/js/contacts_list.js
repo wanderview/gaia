@@ -738,17 +738,19 @@ contacts.List = (function() {
   };
 
   var showNoContactsAlert = function showNoContactsAlert() {
-    var msg = _('noContactsActivity');
-    var noObject = {
-      title: _('ok'),
-      isDanger: false,
-      callback: function onNoClicked() {
-        ConfirmDialog.hide();
-        ActivityHandler.postCancel();
-      }
-    };
+    LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+      var msg = _('noContactsActivity');
+      var noObject = {
+        title: _('ok'),
+        isDanger: false,
+        callback: function onNoClicked() {
+          ConfirmDialog.hide();
+          ActivityHandler.postCancel();
+        }
+      };
 
-    ConfirmDialog.show(null, msg, noObject);
+      ConfirmDialog.show(null, msg, noObject);
+    });
   };
 
   function addToFavoriteList(favorite) {

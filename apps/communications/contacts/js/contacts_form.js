@@ -219,24 +219,26 @@ contacts.Form = (function() {
       renderTemplate(current, contact[current]);
     }
     deleteContactButton.onclick = function deleteClicked(event) {
-      var msg = _('deleteConfirmMsg');
-      var yesObject = {
-        title: _('remove'),
-        isDanger: true,
-        callback: function onAccept() {
-          deleteContact(currentContact);
-          ConfirmDialog.hide();
-        }
-      };
+      LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+        var msg = _('deleteConfirmMsg');
+        var yesObject = {
+          title: _('remove'),
+          isDanger: true,
+          callback: function onAccept() {
+            deleteContact(currentContact);
+            ConfirmDialog.hide();
+          }
+        };
 
-      var noObject = {
-        title: _('cancel'),
-        callback: function onCancel() {
-          ConfirmDialog.hide();
-        }
-      };
+        var noObject = {
+          title: _('cancel'),
+          callback: function onCancel() {
+            ConfirmDialog.hide();
+          }
+        };
 
-      ConfirmDialog.show(null, msg, noObject, yesObject);
+        ConfirmDialog.show(null, msg, noObject, yesObject);
+      });
     };
   };
 

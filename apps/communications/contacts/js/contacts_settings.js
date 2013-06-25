@@ -277,26 +277,28 @@ contacts.Settings = (function() {
       // For starting we wait for the switch transition to give feedback
       window.addEventListener('transitionend', function fb_remove_all(e) {
         if (e.target.id === 'span-check-fb') {
-          window.removeEventListener('transitionend', fb_remove_all);
-          var msg = _('cleanFbConfirmMsg');
-          var yesObject = {
-            title: _('remove'),
-            isDanger: true,
-            callback: function() {
-              ConfirmDialog.hide();
-              doFbUnlink();
-            }
-          };
+          LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+            window.removeEventListener('transitionend', fb_remove_all);
+            var msg = _('cleanFbConfirmMsg');
+            var yesObject = {
+              title: _('remove'),
+              isDanger: true,
+              callback: function() {
+                ConfirmDialog.hide();
+                doFbUnlink();
+              }
+            };
 
-          var noObject = {
-            title: _('cancel'),
-            callback: function onCancel() {
-              fbImportCheck.checked = true;
-              ConfirmDialog.hide();
-            }
-          };
+            var noObject = {
+              title: _('cancel'),
+              callback: function onCancel() {
+                fbImportCheck.checked = true;
+                ConfirmDialog.hide();
+              }
+            };
 
-          ConfirmDialog.show(null, msg, noObject, yesObject);
+            ConfirmDialog.show(null, msg, noObject, yesObject);
+          });
         }
       });
     }
@@ -406,23 +408,25 @@ contacts.Settings = (function() {
     };
 
     importer.onerror = function import_error() {
-      var cancel = {
-        title: _('cancel'),
-        callback: function() {
-          ConfirmDialog.hide();
-        }
-      };
-      var retry = {
-        title: _('retry'),
-        isRecommend: true,
-        callback: function() {
-          ConfirmDialog.hide();
-          // And now the action is reproduced one more time
-          simImportLink.click();
-        }
-      };
-      ConfirmDialog.show(null, _('simContacts-error'), cancel, retry);
-      Contacts.hideOverlay();
+      LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+        var cancel = {
+          title: _('cancel'),
+          callback: function() {
+            ConfirmDialog.hide();
+          }
+        };
+        var retry = {
+          title: _('retry'),
+          isRecommend: true,
+          callback: function() {
+            ConfirmDialog.hide();
+            // And now the action is reproduced one more time
+            simImportLink.click();
+          }
+        };
+        ConfirmDialog.show(null, _('simContacts-error'), cancel, retry);
+        Contacts.hideOverlay();
+      });
     };
 
     importer.start();
@@ -488,24 +492,26 @@ contacts.Settings = (function() {
     }
 
     function import_error(e) {
-      var cancel = {
-        title: _('cancel'),
-        callback: function() {
-          ConfirmDialog.hide();
-        }
-      };
+      LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+        var cancel = {
+          title: _('cancel'),
+          callback: function() {
+            ConfirmDialog.hide();
+          }
+        };
 
-      var retry = {
-        title: _('retry'),
-        isRecommend: true,
-        callback: function() {
-          ConfirmDialog.hide();
-          // And now the action is reproduced one more time
-          sdImportLink.click();
-        }
-      };
-      ConfirmDialog.show(null, _('memoryCardContacts-error'), cancel, retry);
-      Contacts.hideOverlay();
+        var retry = {
+          title: _('retry'),
+          isRecommend: true,
+          callback: function() {
+            ConfirmDialog.hide();
+            // And now the action is reproduced one more time
+            sdImportLink.click();
+          }
+        };
+        ConfirmDialog.show(null, _('memoryCardContacts-error'), cancel, retry);
+        Contacts.hideOverlay();
+      });
     }
   };
 

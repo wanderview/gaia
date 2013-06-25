@@ -214,24 +214,26 @@ if (typeof Contacts.extServices === 'undefined') {
     }
 
     function unlink(cid) {
-      var msg = _('social-unlink-confirm-title');
-      var yesObject = {
-        title: _('social-unlink-confirm-accept'),
-        isDanger: true,
-        callback: function onAccept() {
-          ConfirmDialog.hide();
-          doUnlink(cid);
-        }
-      };
+      LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+        var msg = _('social-unlink-confirm-title');
+        var yesObject = {
+          title: _('social-unlink-confirm-accept'),
+          isDanger: true,
+          callback: function onAccept() {
+            ConfirmDialog.hide();
+            doUnlink(cid);
+          }
+        };
 
-      var noObject = {
-        title: _('cancel'),
-        callback: function onCancel() {
-          ConfirmDialog.hide();
-        }
-      };
+        var noObject = {
+          title: _('cancel'),
+          callback: function onCancel() {
+            ConfirmDialog.hide();
+          }
+        };
 
-      ConfirmDialog.show(null, msg, noObject, yesObject);
+        ConfirmDialog.show(null, msg, noObject, yesObject);
+      });
     }
 
     function doUnlink(cid) {
