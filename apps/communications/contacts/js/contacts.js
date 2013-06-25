@@ -574,9 +574,11 @@ var Contacts = (function() {
     if (settingsReady) {
       callback();
     } else {
-      loadFacebook(function fbReady() {
-        contacts.Settings.init();
-        callback();
+      LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+        loadFacebook(function fbReady() {
+          contacts.Settings.init();
+          callback();
+        });
       });
       settingsReady = true;
     }
@@ -628,7 +630,9 @@ var Contacts = (function() {
   };
 
   var hideSettings = function hideSettings() {
-    contacts.Settings.close();
+    LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+      contacts.Settings.close();
+    });
   };
 
   var showOverlay = function c_showOverlay(message, progressClass, textId) {
@@ -707,12 +711,16 @@ var Contacts = (function() {
   };
 
   var onLineChanged = function() {
-    contacts.Settings.onLineChanged();
-    contacts.Details.onLineChanged();
+    LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+      contacts.Settings.onLineChanged();
+      contacts.Details.onLineChanged();
+    });
   };
 
   var cardStateChanged = function() {
-    contacts.Settings.cardStateChanged();
+    LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+      contacts.Settings.cardStateChanged();
+    });
   };
 
   var getFirstContacts = function c_getFirstContacts() {
@@ -727,7 +735,6 @@ var Contacts = (function() {
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
       '/contacts/js/import_utils.js',
-      '/contacts/js/contacts_settings.js',
       '/contacts/js/contacts_details.js',
       '/contacts/js/contacts_form.js',
       '/dialer/js/telephony_helper.js',
@@ -866,7 +873,9 @@ var Contacts = (function() {
       Contacts.checkCancelableActivity();
       if (document.hidden === false &&
                                 navigation.currentView() === 'view-settings') {
-        contacts.Settings.updateTimestamps();
+        LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+          contacts.Settings.updateTimestamps();
+        });
       }
     });
   };
