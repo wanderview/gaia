@@ -54,10 +54,11 @@ if (MockSdCard.status === MockSdCard.NOT_INITIALIZED) {
 
 /**
  * Check whether there is a SD card inserted in the device.
- * @return {Boolean} return true if sd card present, false otherwise.
  */
-MockSdCard.checkStorageCard = function sd_checkStorageCard() {
-  return MockSdCard.status === MockSdCard.AVAILABLE;
+MockSdCard.checkStorageCard = function sd_checkStorageCard(callback) {
+  if (callback) {
+    callback(MockSdCard.status === MockSdCard.AVAILABLE);
+  }
 };
 
 MockSdCard.retrieveFiles = function retrieveFilesContent(mimes, exts, cb) {

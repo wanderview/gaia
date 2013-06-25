@@ -30,18 +30,22 @@ if (!utils.sdcard) {
       SdCard.updateStorageState(e.reason);
     });
 
-  if (SdCard.status === SdCard.NOT_INITIALIZED) {
-    SdCard.deviceStorage.available().onsuccess = (function(e) {
-      SdCard.updateStorageState(e.target.result);
-    });
-  }
-
   /**
    * Check whether there is a SD card inserted in the device.
-   * @return {Boolean} true if sdcard available, false otherwise.
    */
-  SdCard.checkStorageCard = function sd_checkStorageCard() {
-    return SdCard.status === SdCard.AVAILABLE;
+  SdCard.checkStorageCard = function sd_checkStorageCard(callback) {
+    if (SdCard.status === SdCard.NOT_INITIALIZED) {
+      SdCard.deviceStorage.available().onsuccess = (function(e) {
+        SdCard.updateStorageState(e.target.result);
+        if (callback) {
+          callback(SdCard.status === SdCard.AVAILABLE);
+        }
+      });
+      return;
+    }
+    if (callback) {
+      callback(SdCard.status === SdCard.AVAILABLE);
+    }
   };
 
   /**

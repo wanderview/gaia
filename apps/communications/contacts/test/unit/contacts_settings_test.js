@@ -8,6 +8,7 @@ requireApp('communications/dialer/test/unit/mock_confirm_dialog.js');
 requireApp('communications/contacts/test/unit/mock_vcard_parser.js');
 requireApp('communications/contacts/js/import_utils.js');
 requireApp('communications/contacts/js/contacts_settings.js');
+requireApp('communications/contacts/js/utilities/sdcard.js');
 
 if (!this._) this._ = null;
 if (!this.utils) this.utils = null;
@@ -167,7 +168,7 @@ suite('Contacts settings', function() {
 
     test('no SD card import if no SD card is present', function(done) {
       var realSdCheck = utils.sdcard.checkStorageCard;
-      utils.sdcard.checkStorageCard = function() { return false; };
+      utils.sdcard.checkStorageCard = function(cb) { cb(false) };
       contacts.Settings.refresh(function() {
         utils.sdcard.checkStorageCard = realSdCheck;
 

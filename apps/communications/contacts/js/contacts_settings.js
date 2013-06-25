@@ -443,19 +443,21 @@ contacts.Settings = (function() {
     // Delay for showing feedback to the user after importing
     var DELAY_FEEDBACK = 200;
 
-    utils.sdcard.retrieveFiles([
-      'text/vcard',
-      'text/x-vcard',
-      'text/directory;profile=vCard',
-      'text/directory'
-    ], ['vcf', 'vcard'], function(err, fileArray) {
-      if (err)
-        return import_error(err);
+    LazyLoader.load(['/contacts/js/utilities/sdcard.js'], function() {
+      utils.sdcard.retrieveFiles([
+        'text/vcard',
+        'text/x-vcard',
+        'text/directory;profile=vCard',
+        'text/directory'
+      ], ['vcf', 'vcard'], function(err, fileArray) {
+        if (err)
+          return import_error(err);
 
-      if (fileArray.length)
-        utils.sdcard.getTextFromFiles(fileArray, '', onFiles);
-      else
-        import_error('No contacts were found.');
+        if (fileArray.length)
+          utils.sdcard.getTextFromFiles(fileArray, '', onFiles);
+        else
+          import_error('No contacts were found.');
+      });
     });
 
     function onFiles(err, text) {
@@ -637,8 +639,12 @@ contacts.Settings = (function() {
     getData();
     checkOnline();
     checkSIMCard();
-    enableStorageImport(utils.sdcard.checkStorageCard());
-    updateTimestamps(callback);
+    LazyLoader.load(['/contacts/js/utilities/sdcard.js'], function() {
+      utils.sdcard.checkStorageCard(function(cardState) {
+        enableStorageImport(cardState);
+        updateTimestamps(callback);
+      });
+    });
   };
 
   return {
