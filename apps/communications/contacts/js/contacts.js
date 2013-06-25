@@ -439,7 +439,9 @@ var Contacts = (function() {
     if (ActivityHandler.currentlyHandling) {
       ActivityHandler.postPickSuccess({ number: number });
     } else {
-      TelephonyHelper.call(number);
+      LazyLoader.load(['/dialer/js/telephony_helper.js'], function() {
+        TelephonyHelper.call(number);
+      });
     }
   };
 
@@ -743,7 +745,6 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/dialer/js/telephony_helper.js',
       '/contacts/js/sms_integration.js',
       '/contacts/js/utilities/sdcard.js',
       '/contacts/js/utilities/vcard_parser.js',
