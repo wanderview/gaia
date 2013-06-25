@@ -284,7 +284,7 @@ contacts.Form = (function() {
   var onNewFieldClicked = function onNewFieldClicked(evt) {
     var type = evt.target.dataset['fieldType'];
     evt.preventDefault();
-    contacts.Form.insertField(type);
+    insertField(type);
     textFieldsCache.clear();
     return false;
   };
