@@ -46,22 +46,24 @@ var Contacts = (function() {
 
     switch (sectionId) {
       case 'view-contact-details':
-        initContactsList();
-        initDetails(function onInitDetails() {
-          if (params == -1 || !('id' in params)) {
-            console.log('Param missing');
-            return;
-          }
-          var id = params['id'];
-          cList.getContactById(id, function onSuccess(savedContact) {
-            currentContact = savedContact;
-            contactsDetails.render(currentContact, TAG_OPTIONS);
-            if (params['tel'])
-              contactsDetails.reMark('tel', params['tel']);
-            navigation.go(sectionId, 'right-left');
-            showApp();
-          }, function onError() {
-            console.error('Error retrieving contact');
+        initContactsList(function() {
+          initDetails(function onInitDetails() {
+            if (params == -1 || !('id' in params)) {
+              console.log('Param missing');
+              return;
+            }
+            var id = params['id'];
+            cList.getContactById(id, function onSuccess(savedContact) {
+              currentContact = savedContact;
+              contactsDetails.render(currentContact, TAG_OPTIONS, function() {
+                if (params['tel'])
+                  contactsDetails.reMark('tel', params['tel']);
+                navigation.go(sectionId, 'right-left');
+                showApp();
+              });
+            }, function onError() {
+              console.error('Error retrieving contact');
+            });
           });
         });
         break;
@@ -94,13 +96,14 @@ var Contacts = (function() {
         break;
 
       case 'add-parameters':
-        initContactsList();
-        initForm(function onInitForm() {
-          navigation.home();
-          if (ActivityHandler.currentlyHandling) {
-            selectList(params, true);
-          }
-          showApp();
+        initContactsList(function() {
+          initForm(function onInitForm() {
+            navigation.home();
+            if (ActivityHandler.currentlyHandling) {
+              selectList(params, true);
+            }
+            showApp();
+          });
         });
         break;
 
@@ -190,12 +193,13 @@ var Contacts = (function() {
     window.addEventListener('asyncScriptsLoaded', function onAsyncLoad() {
       asyncScriptsLoaded = true;
       window.removeEventListener('asyncScriptsLoaded', onAsyncLoad);
-      contactsList.initAlphaScroll();
-      checkUrl();
+      contactsList.initAlphaScroll(function() {
+        checkUrl();
 
-      PerformanceTestingHelper.dispatch('init-finished');
+        PerformanceTestingHelper.dispatch('init-finished');
 
-      asyncScriptsLoaded = true;
+        asyncScriptsLoaded = true;
+      });
     });
   };
 
@@ -207,16 +211,24 @@ var Contacts = (function() {
     window.addEventListener('hashchange', checkUrl);
   };
 
-  var initContactsList = function initContactsList() {
-    if (contactsList)
+  var initContactsList = function initContactsList(cb) {
+    if (contactsList) {
+      if (cb)
+        cb(contactsList);
       return;
-    contactsList = contactsList || contacts.List;
-    var list = document.getElementById('groups-list');
-    contactsList.init(list);
-    getFirstContacts();
-    contactsList.initAlphaScroll();
-    contactsList.handleClick(contactListClickHandler);
-    checkCancelableActivity();
+    }
+
+    LazyLoader.load(['/contacts/js/contacts_list.js'], function() {
+      contactsList = contactsList || contacts.List;
+      contactsList.init();
+      getFirstContacts();
+      contactsList.initAlphaScroll(function() {
+        contactsList.handleClick(contactListClickHandler);
+        checkCancelableActivity();
+        if (cb)
+          cb(contactsList);
+      });
+    });
   };
 
   var checkCancelableActivity = function cancelableActivity() {
@@ -307,20 +319,23 @@ var Contacts = (function() {
           }
           return;
         }
-        contactsDetails.render(currentContact, TAG_OPTIONS);
-        if (contacts.Search.isInSearchMode()) {
-          navigation.go('view-contact-details', 'go-deeper-search');
-        } else {
-          navigation.go('view-contact-details', 'go-deeper');
-        }
+        contactsDetails.render(currentContact, TAG_OPTIONS, false, function() {
+          LazyLoader.load(['/contacts/js/search.js'], function() {
+            if (contacts.Search.isInSearchMode()) {
+              navigation.go('view-contact-details', 'go-deeper-search');
+            } else {
+              navigation.go('view-contact-details', 'go-deeper');
+            }
+          });
+        });
       });
     });
   };
 
-  var updateContactDetail = function updateContactDetail(id) {
+  var updateContactDetail = function updateContactDetail(id, cb) {
     contactsList.getContactById(id, function findCallback(contact) {
       currentContact = contact;
-      contactsDetails.render(currentContact, TAG_OPTIONS);
+      contactsDetails.render(currentContact, TAG_OPTIONS, cb);
     });
   };
 
@@ -563,10 +578,12 @@ var Contacts = (function() {
     if (detailsReady) {
       callback();
     } else {
-      loadFacebook(function fbReady() {
-        contactsDetails = contacts.Details;
-        contactsDetails.init();
-        callback();
+      LazyLoader.load(['/contacts/js/contacts_details.js'], function() {
+        loadFacebook(function fbReady() {
+          contactsDetails = contacts.Details;
+          contactsDetails.init();
+          callback();
+        });
       });
       detailsReady = true;
     }
@@ -641,7 +658,9 @@ var Contacts = (function() {
   };
 
   var exitSearchMode = function exitSearchMode(evt) {
-    contacts.Search.exitSearchMode(evt);
+    LazyLoader.load(['/contacts/js/search.js'], function() {
+      contacts.Search.exitSearchMode(evt);
+    });
   };
 
   var initEventListeners = function initEventListener() {
@@ -698,13 +717,10 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/utilities/templates.js',
-      '/contacts/js/contacts_shortcuts.js',
       '/contacts/js/confirm_dialog.js',
       '/contacts/js/contacts_tag.js',
       '/contacts/js/import_utils.js',
       '/contacts/js/utilities/normalizer.js',
-      '/shared/js/text_normalizer.js',
       '/contacts/js/contacts_settings.js',
       '/contacts/js/contacts_details.js',
       '/contacts/js/contacts_form.js',
@@ -716,7 +732,6 @@ var Contacts = (function() {
       '/contacts/js/utilities/status.js',
       '/contacts/js/utilities/overlay.js',
       '/contacts/js/utilities/dom.js',
-      '/contacts/js/search.js',
       '/shared/style_unstable/progress_activity.css',
       '/shared/style/status.css',
       '/shared/style/switches.css',
@@ -731,8 +746,9 @@ var Contacts = (function() {
     LazyLoader.load(lazyLoadFiles, function() {
       var handling = ActivityHandler.currentlyHandling;
       if (!handling || ActivityHandler.activityName === 'pick') {
-        initContactsList();
-        checkUrl();
+        initContactsList(function() {
+          checkUrl();
+        });
       } else {
         // Unregister here to avoid un-necessary list operations.
         navigator.mozContacts.oncontactchange = null;
@@ -783,41 +799,44 @@ var Contacts = (function() {
   };
 
   var performOnContactChange = function performOnContactChange(event) {
-    initContactsList();
-    var currView = navigation.currentView();
-    switch (event.reason) {
-      case 'update':
-        if (currView == 'view-contact-details' && currentContact != null &&
-          currentContact.id == event.contactID) {
-          contactsList.getContactById(event.contactID,
-            function success(contact, enrichedContact) {
-            currentContact = contact;
-            var mergedContact = enrichedContact || contact;
-            contactsDetails.render(mergedContact, false,
-                                   enrichedContact ? true : false);
-            contactsList.refresh(mergedContact, checkPendingChanges,
-                                 event.reason);
-          });
-        } else {
+    initContactsList(function() {
+      var currView = navigation.currentView();
+      switch (event.reason) {
+        case 'update':
+          if (currView == 'view-contact-details' && currentContact != null &&
+            currentContact.id == event.contactID) {
+            contactsList.getContactById(event.contactID,
+              function success(contact, enrichedContact) {
+              currentContact = contact;
+              var mergedContact = enrichedContact || contact;
+              contactsDetails.render(mergedContact, false,
+                                     enrichedContact ? true : false,
+                                     function() {
+                contactsList.refresh(mergedContact, checkPendingChanges,
+                                     event.reason);
+              });
+            });
+          } else {
+            contactsList.refresh(event.contactID, checkPendingChanges,
+              event.reason);
+          }
+          break;
+        case 'create':
           contactsList.refresh(event.contactID, checkPendingChanges,
             event.reason);
-        }
-        break;
-      case 'create':
-        contactsList.refresh(event.contactID, checkPendingChanges,
-          event.reason);
-        break;
-      case 'remove':
-        if (currentContact != null && currentContact.id == event.contactID &&
-          (currView == 'view-contact-details' ||
-          currView == 'view-contact-form')) {
-          navigation.home();
-        }
-        contactsList.remove(event.contactID, event.reason);
-        currentContact = {};
-        checkPendingChanges(event.contactID);
-        break;
-    }
+          break;
+        case 'remove':
+          if (currentContact != null && currentContact.id == event.contactID &&
+            (currView == 'view-contact-details' ||
+            currView == 'view-contact-form')) {
+            navigation.home();
+          }
+          contactsList.remove(event.contactID, event.reason);
+          currentContact = {};
+          checkPendingChanges(event.contactID);
+          break;
+      }
+    });
   };
 
   var close = function close() {

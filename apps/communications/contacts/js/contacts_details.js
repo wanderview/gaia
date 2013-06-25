@@ -120,7 +120,7 @@ contacts.Details = (function() {
     });
   };
 
-  var render = function cd_render(currentContact, tags, isEnrichedContact) {
+  var render = function cd_render(currentContact, tags, isEnrichedContact, cb) {
     contactData = currentContact || contactData;
 
     TAG_OPTIONS = tags || TAG_OPTIONS;
@@ -135,15 +135,15 @@ contacts.Details = (function() {
       var req = fbContact.getData();
 
       req.onsuccess = function do_reload() {
-        doReloadContactDetails(req.result);
+        doReloadContactDetails(req.result, cb);
       };
 
       req.onerror = function() {
         window.console.error('FB: Error while loading FB contact data');
-        doReloadContactDetails(contactData);
+        doReloadContactDetails(contactData, cb);
       };
     } else {
-      doReloadContactDetails(contactData);
+      doReloadContactDetails(contactData, cb);
     }
   };
 
@@ -152,27 +152,35 @@ contacts.Details = (function() {
   //
   // Method that generates HTML markup for the contact
   //
-  var doReloadContactDetails = function doReloadContactDetails(contact) {
+  var doReloadContactDetails = function doReloadContactDetails(contact, cb) {
 
     detailsName.textContent = contact.name;
     contactDetails.classList.remove('no-photo');
     contactDetails.classList.remove('fb-contact');
     contactDetails.classList.remove('up');
-    utils.dom.removeChildNodes(listContainer);
+    LazyLoader.load(['/contacts/js/utilities/templates.js',
+                     '/contacts/js/utilities/dom.js',
+                     '/shared/js/text_normalizer.js'], function() {
+      utils.dom.removeChildNodes(listContainer);
 
-    renderFavorite(contact);
-    renderOrg(contact);
-    renderBday(contact);
+      renderFavorite(contact);
+      renderOrg(contact);
+      renderBday(contact);
 
-    renderPhones(contact);
-    renderEmails(contact);
-    renderAddresses(contact);
-    renderNotes(contact);
-    if (fb.isEnabled) {
-      renderSocial(contact);
-    }
+      renderPhones(contact);
+      renderEmails(contact);
+      renderAddresses(contact);
+      renderNotes(contact);
+      if (fb.isEnabled) {
+        renderSocial(contact);
+      }
 
-    renderPhoto(contact);
+      renderPhoto(contact);
+
+      if (cb) {
+        cb();
+      }
+    });
   };
 
   var renderFavorite = function cd_renderFavorite(contact) {

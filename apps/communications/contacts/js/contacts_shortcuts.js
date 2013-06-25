@@ -76,8 +76,10 @@ if (!utils.alphaScroll) {
       alphabet.push({
         anchor: '#'
       });
-      utils.templates.append(jumper, alphabet);
       alreadyRendered = true;
+      LazyLoader.load(['/contacts/js/utilities/templates.js'], function() {
+        utils.templates.append(jumper, alphabet);
+      });
     };
 
     function scrollStart(evt) {

@@ -93,7 +93,7 @@ contacts.List = (function() {
     monitor.resumeMonitoringMutations(false);
   };
 
-  var init = function load(element) {
+  var init = function load() {
     _ = navigator.mozL10n.get;
 
     cancel = document.getElementById('cancel-search'),
@@ -178,14 +178,16 @@ contacts.List = (function() {
   }; // searchSource
 
   var initSearch = function initSearch(callback) {
-    contacts.Search.init(searchSource, true);
+    LazyLoader.load(['/contacts/js/search.js'], function() {
+      contacts.Search.init(searchSource, true);
 
-    if (callback) {
-      callback();
-    }
+      if (callback) {
+        callback();
+      }
+    });
   };
 
-  var initAlphaScroll = function initAlphaScroll() {
+  var initAlphaScroll = function initAlphaScroll(cb) {
     var overlay = document.querySelector('nav[data-type="scrollbar"] p');
     var jumper = document.querySelector('nav[data-type="scrollbar"] ol');
 
@@ -196,7 +198,11 @@ contacts.List = (function() {
       scrollToCb: scrollToCb
     };
 
-    utils.alphaScroll.init(params);
+    LazyLoader.load(['/contacts/js/contacts_shortcuts.js'], function() {
+      utils.alphaScroll.init(params);
+      if (cb)
+        cb();
+    });
   };
 
   var scrollToCb = function scrollCb(domTarget, group) {
@@ -204,7 +210,7 @@ contacts.List = (function() {
       scrollable.scrollTop = domTarget.offsetTop;
   };
 
-  var load = function load(contacts, forceReset) {
+  var load = function load(contacts, forceReset, cb) {
     var onError = function() {
       console.log('ERROR Retrieving contacts');
     };
@@ -212,6 +218,8 @@ contacts.List = (function() {
     var complete = function complete() {
       initOrder(function onInitOrder() {
         getContactsByGroup(onError, contacts);
+        if (cb)
+          cb();
       });
     };
 
@@ -465,19 +473,23 @@ contacts.List = (function() {
 
   var CHUNK_SIZE = 20;
   function loadChunk(chunk) {
-    var nodes = [];
-    for (var i = 0, n = chunk.length; i < n; ++i) {
-      if (i === rowsPerPage)
+    LazyLoader.load(['/shared/js/text_normalizer.js'], function() {
+      var nodes = [];
+      for (var i = 0, n = chunk.length; i < n; ++i) {
+        if (i === rowsPerPage)
+          notifyAboveTheFold();
+
+        var newNodes = appendToLists(chunk[i]);
+        nodes.push.apply(nodes, newNodes);
+      }
+
+      if (i < rowsPerPage)
         notifyAboveTheFold();
 
-      var newNodes = appendToLists(chunk[i]);
-      nodes.push.apply(nodes, newNodes);
-    }
-
-    if (i < rowsPerPage)
-      notifyAboveTheFold();
-
-    contacts.Search.appendNodes(nodes);
+      LazyLoader.load(['/contacts/js/search.js'], function() {
+        contacts.Search.appendNodes(nodes);
+      });
+    });
   }
 
   // Time until we show the first contacts "above the fold" is a very
@@ -1078,13 +1090,15 @@ contacts.List = (function() {
       cancelLoadCB = resetDom.bind(null, cb);
       return;
     }
-    utils.dom.removeChildNodes(groupsList);
-    loaded = false;
+    LazyLoader.load(['/contacts/js/utilities/dom.js'], function() {
+      utils.dom.removeChildNodes(groupsList);
+      loaded = false;
 
-    initHeaders();
-    FixedHeader.refresh();
-    if (cb)
-      cb();
+      initHeaders();
+      FixedHeader.refresh();
+      if (cb)
+        cb();
+    });
   };
 
   // Initialize group headers at the beginning or after a dom reset

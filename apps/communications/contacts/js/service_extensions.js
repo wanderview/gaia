@@ -240,10 +240,11 @@ if (typeof Contacts.extServices === 'undefined') {
       var freq = fbContact.unlink();
 
       freq.onsuccess = function() {
-        Contacts.updateContactDetail(cid);
-        if (freq.result) {
-          Contacts.updateContactDetail(cid);
-        }
+        Contacts.updateContactDetail(cid, function() {
+          if (freq.result) {
+            Contacts.updateContactDetail(cid);
+          }
+        });
       };
 
       freq.onerror = function() {

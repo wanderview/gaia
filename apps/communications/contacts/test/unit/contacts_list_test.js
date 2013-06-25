@@ -357,7 +357,7 @@ suite('Render contacts list', function() {
     resetDom(window.document);
 
     subject.setOrderByLastName(true);
-    subject.init(list);
+    subject.init();
 
     contacts.Search.load();
     subject.initSearch();
@@ -383,23 +383,27 @@ suite('Render contacts list', function() {
     test('get less than 1 chunk contacts', function() {
       var limit = subject.chunkSize - 1;
       MockMozContacts.limit = limit;
+      window.addEventListener('listRendered', function() {
+        assert.isTrue(noContacts.classList.contains('hide'));
+        for (var i = 0; i <= limit; i++) {
+          var toCheck = container.innerHTML.contains('givenName ' + i);
+          assert.isTrue(toCheck, 'contains ' + i);
+        }
+      });
       subject.getAllContacts();
-      assert.isTrue(noContacts.classList.contains('hide'));
-      for (var i = 0; i <= limit; i++) {
-        var toCheck = container.innerHTML.contains('givenName ' + i);
-        assert.isTrue(toCheck, 'contains ' + i);
-      }
     });
 
     test('get exactly 1 chunk contacts', function() {
       var limit = subject.chunkSize;
       MockMozContacts.limit = limit;
+      window.addEventListener('listRendered', function() {
+        assert.isTrue(noContacts.classList.contains('hide'));
+        for (var i = 0; i <= limit; i++) {
+          var toCheck = container.innerHTML.contains('givenName ' + i);
+          assert.isTrue(toCheck, 'contains ' + i);
+        }
+      });
       subject.getAllContacts();
-      assert.isTrue(noContacts.classList.contains('hide'));
-      for (var i = 0; i <= limit; i++) {
-        var toCheck = container.innerHTML.contains('givenName ' + i);
-        assert.isTrue(toCheck, 'contains ' + i);
-      }
     });
 
     test('get more than 1 chunk contacts', function() {
@@ -419,19 +423,16 @@ suite('Render contacts list', function() {
       window.fb.isEnabled = false;
     });
 
-    test('first time', function() {
+    test('first time', function(done) {
       mockContacts = new MockContactsList();
-      subject.load(mockContacts);
-
-      updateDomReferences();
-
-      assert.isTrue(noContacts.classList.contains('hide'));
-      assertNoGroup(groupFav, containerFav);
-      assertGroup(groupA, containerA, 1);
-      assertGroup(groupB, containerB, 1);
-      assertGroup(groupC, containerC, 1);
-      assertNoGroup(groupD, containerD);
-
+      doLoad(subject, mockContacts, function() {
+        assert.isTrue(noContacts.classList.contains('hide'));
+        assertNoGroup(groupFav, containerFav);
+        assertGroup(groupA, containerA, 1);
+        assertGroup(groupB, containerB, 1);
+        assertGroup(groupC, containerC, 1);
+        assertNoGroup(groupD, containerD);
+      });
     });
 
     test('adding one at the beginning', function() {
@@ -452,7 +453,7 @@ suite('Render contacts list', function() {
       assertTotal(3, 4);
     });
 
-    test('adding one at the end', function() {
+    test('adding one at the end', function(done) {
       var newContact = new MockContactAllFields();
       newContact.id = '4';
       newContact.familyName = ['CZ'];
@@ -467,6 +468,7 @@ suite('Render contacts list', function() {
       assert.isTrue(cContacts[1].querySelector('p').innerHTML.indexOf('CZ') >
                     -1);
       assertTotal(3, 4);
+      done();
     });
 
     test('rendering one with no name nor phone and company', function() {
@@ -799,7 +801,6 @@ suite('Render contacts list', function() {
 
         // There are contacts on the list so no contacts should be hidden
         assert.isTrue(noContacts.classList.contains('hide'));
-
         done();
       });
     });
@@ -884,7 +885,7 @@ suite('Render contacts list', function() {
   suite('Facebook Contacts List', function() {
     suiteSetup(function() {
       resetDom(window.document);
-      subject.init(list);
+      subject.init();
     });
 
     teardown(function() {
@@ -1103,7 +1104,7 @@ suite('Render contacts list', function() {
 
     test('Order by lastname', function(done) {
       resetDom(document);
-      subject.init(list);
+      subject.init();
 
       mockContacts = new MockContactsList();
       doLoad(subject, mockContacts, function() {
