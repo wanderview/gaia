@@ -646,8 +646,9 @@ var Contacts = (function() {
   var showSettings = function showSettings() {
     initSettings(function onSettingsReady() {
       // The number of FB Friends has to be recalculated
-      contacts.Settings.refresh();
-      navigation.go('view-settings', 'popup');
+      contacts.Settings.refresh(function() {
+        navigation.go('view-settings', 'popup');
+      });
     });
   };
 
@@ -726,7 +727,6 @@ var Contacts = (function() {
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
       '/contacts/js/import_utils.js',
-      '/contacts/js/utilities/normalizer.js',
       '/contacts/js/contacts_settings.js',
       '/contacts/js/contacts_details.js',
       '/contacts/js/contacts_form.js',

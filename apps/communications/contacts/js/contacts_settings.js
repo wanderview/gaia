@@ -605,29 +605,35 @@ contacts.Settings = (function() {
     });
   }
 
-  var updateTimestamps = function updateTimestamps() {
-    Array.prototype.forEach.call(importSources, function(node) {
-      window.importUtils.getTimestamp(node.dataset.source,
-                                      function(time) {
-        var spanID = 'notImported';
-        if (time) {
-          spanID = 'imported';
-          var timeElement = node.querySelector('p > time');
-          timeElement.setAttribute('datetime',
-                                             (new Date(time)).toLocaleString());
-          timeElement.textContent = utils.time.pretty(time);
-        }
-        node.querySelector('p > span').textContent = _(spanID);
+  var updateTimestamps = function updateTimestamps(callback) {
+    LazyLoader.load(['/contacts/js/utilities/normalizer.js'], function() {
+      Array.prototype.forEach.call(importSources, function(node) {
+        window.importUtils.getTimestamp(node.dataset.source,
+                                        function(time) {
+          var spanID = 'notImported';
+          if (time) {
+            spanID = 'imported';
+            var timeElement = node.querySelector('p > time');
+            timeElement.setAttribute('datetime',
+                                     (new Date(time)).toLocaleString());
+            timeElement.textContent = utils.time.pretty(time);
+          }
+          node.querySelector('p > span').textContent = _(spanID);
+        });
       });
+
+      if (callback) {
+        callback();
+      }
     });
   };
 
-  var refresh = function refresh() {
+  var refresh = function refresh(callback) {
     getData();
     checkOnline();
     checkSIMCard();
     enableStorageImport(utils.sdcard.checkStorageCard());
-    updateTimestamps();
+    updateTimestamps(callback);
   };
 
   return {

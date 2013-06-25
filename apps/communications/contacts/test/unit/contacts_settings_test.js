@@ -153,28 +153,31 @@ suite('Contacts settings', function() {
       mocksHelper.setup();
     });
 
-    test('show SD Card import if SD card is present', function() {
+    test('show SD Card import if SD card is present', function(done) {
       navigator.getDeviceStorage = stub(true);
-      contacts.Settings.refresh();
+      contacts.Settings.refresh(function() {
+        assert.equal(document.getElementById('settingsStorage')
+          .firstElementChild.hasAttribute('disabled'), false);
 
-      assert.equal(document.getElementById('settingsStorage')
-        .firstElementChild.hasAttribute('disabled'), false);
-
-      assert.equal(document.querySelector('#no-memorycard')
-        .classList.contains('hide'), true);
+        assert.equal(document.querySelector('#no-memorycard')
+          .classList.contains('hide'), true);
+        done();
+      });
     });
 
-    test('no SD card import if no SD card is present', function() {
+    test('no SD card import if no SD card is present', function(done) {
       var realSdCheck = utils.sdcard.checkStorageCard;
       utils.sdcard.checkStorageCard = function() { return false; };
-      contacts.Settings.refresh();
-      utils.sdcard.checkStorageCard = realSdCheck;
+      contacts.Settings.refresh(function() {
+        utils.sdcard.checkStorageCard = realSdCheck;
 
-      assert.equal(document.getElementById('settingsStorage')
-        .firstElementChild.hasAttribute('disabled'), true);
+        assert.equal(document.getElementById('settingsStorage')
+          .firstElementChild.hasAttribute('disabled'), true);
 
-      assert.equal(document.querySelector('#no-memorycard')
-        .classList.contains('hide'), false);
+        assert.equal(document.querySelector('#no-memorycard')
+          .classList.contains('hide'), false);
+        done();
+      });
     });
 
     test('Click SD import should traverse SD Card (0 results)', function(done) {
@@ -202,14 +205,16 @@ suite('Contacts settings', function() {
     var gmailTime = Date.now();
     var liveTime = Date.now() - 24 * 60 * 60 * 1000;
 
-    suiteSetup(function() {
+    suiteSetup(function(done) {
       document.body.innerHTML = dom;
       contacts.Settings.init();
 
       MockasyncStorage.setItem('gmail_last_import_timestamp', gmailTime);
       MockasyncStorage.setItem('live_last_import_timestamp', liveTime);
 
-      contacts.Settings.updateTimestamps();
+      contacts.Settings.updateTimestamps(function() {
+        done();
+      });
     });
 
     test('Contacts from SD card and SIM are not imported yet', function() {
