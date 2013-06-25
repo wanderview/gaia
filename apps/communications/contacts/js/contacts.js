@@ -657,7 +657,9 @@ var Contacts = (function() {
   };
 
   var toggleFavorite = function toggleFavorite() {
-    contacts.Details.toggleFavorite();
+    LazyLoader.load(['/contacts/js/contacts_details.js'], function() {
+      contacts.Details.toggleFavorite();
+    });
   };
 
   var stopPropagation = function stopPropagation(evt) {
@@ -711,7 +713,8 @@ var Contacts = (function() {
   };
 
   var onLineChanged = function() {
-    LazyLoader.load(['/contacts/js/contacts_settings.js'], function() {
+    LazyLoader.load(['/contacts/js/contacts_settings.js',
+                     '/contacts/js/contacts_details.js'], function() {
       contacts.Settings.onLineChanged();
       contacts.Details.onLineChanged();
     });
@@ -735,7 +738,6 @@ var Contacts = (function() {
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
       '/contacts/js/import_utils.js',
-      '/contacts/js/contacts_details.js',
       '/contacts/js/contacts_form.js',
       '/dialer/js/telephony_helper.js',
       '/contacts/js/sms_integration.js',
