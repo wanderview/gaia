@@ -419,12 +419,14 @@ var Contacts = (function() {
     for (var i in options) {
       options[i].value = _(options[i].type);
     }
-    ContactsTag.setCustomTag(customTag);
-    ContactsTag.fillTagOptions(tagsList, contactTag, options, function() {
-      navigation.go('view-select-tag', 'right-left');
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
+    LazyLoader.load(['/contacts/js/contacts_tag.js'], function() {
+      ContactsTag.setCustomTag(customTag);
+      ContactsTag.fillTagOptions(tagsList, contactTag, options, function() {
+        navigation.go('view-select-tag', 'right-left');
+        if (document.activeElement) {
+          document.activeElement.blur();
+        }
+      });
     });
   };
 
@@ -474,22 +476,26 @@ var Contacts = (function() {
   };
 
   var handleSelectTagDone = function handleSelectTagDone() {
-    var prevValue = contactTag.textContent;
-    ContactsTag.clickDone(function() {
-      var valueModifiedEvent = new CustomEvent('ValueModified', {
-        bubbles: true,
-        detail: {
-          prevValue: prevValue,
-          newValue: contactTag.textContent
-        }
+    LazyLoader.load(['/contacts/js/contacts_tag.js'], function() {
+      var prevValue = contactTag.textContent;
+      ContactsTag.clickDone(function() {
+        var valueModifiedEvent = new CustomEvent('ValueModified', {
+          bubbles: true,
+          detail: {
+            prevValue: prevValue,
+            newValue: contactTag.textContent
+          }
+        });
+        contactTag.dispatchEvent(valueModifiedEvent);
+        handleBack();
       });
-      contactTag.dispatchEvent(valueModifiedEvent);
-      handleBack();
     });
   };
 
   var handleCustomTag = function handleCustomTag() {
-    ContactsTag.touchCustomTag();
+    LazyLoader.load(['/contacts/js/contacts_tag.js'], function() {
+      ContactsTag.touchCustomTag();
+    });
   };
 
   var sendEmailOrPick = function sendEmailOrPick(address) {
@@ -719,7 +725,6 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/contacts_tag.js',
       '/contacts/js/import_utils.js',
       '/contacts/js/utilities/normalizer.js',
       '/contacts/js/contacts_settings.js',
