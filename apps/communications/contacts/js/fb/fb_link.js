@@ -496,7 +496,8 @@ if (!fb.link) {
       mainSection = document.querySelector('#main');
       viewButton = document.querySelector('#view-all');
       LazyLoader.load(['/shared/js/text_normalizer.js',
-                       '/contacts/js/utilities/dom.js'], function() {
+                       '/contacts/js/utilities/dom.js',
+                       '/contacts/js/import_utils.js'], function() {
         if (callback) {
           callback();
         }

@@ -394,11 +394,13 @@ contacts.Settings = (function() {
 
     importer.onfinish = function import_finish() {
       window.setTimeout(function onfinish_import() {
-        window.importUtils.setTimestamp('sim');
-        resetWait(wakeLock);
-        Contacts.navigation.home();
-        Contacts.showStatus(_('simContacts-imported3',
-          {n: importedContacts}));
+        LazyLoader.load(['/contacts/js/import_utils.js'], function() {
+          window.importUtils.setTimestamp('sim');
+          resetWait(wakeLock);
+          Contacts.navigation.home();
+          Contacts.showStatus(_('simContacts-imported3',
+            {n: importedContacts}));
+        });
       }, DELAY_FEEDBACK);
     };
 
@@ -470,12 +472,14 @@ contacts.Settings = (function() {
 
       importer.process(function import_finish() {
         window.setTimeout(function onfinish_import() {
-          window.importUtils.setTimestamp('sd');
-          resetWait(wakeLock);
-          Contacts.navigation.home();
-          Contacts.showStatus(_('memoryCardContacts-imported3', {
-            n: importedContacts
-          }));
+          LazyLoader.load(['/contacts/js/import_utils.js'], function() {
+            window.importUtils.setTimestamp('sd');
+            resetWait(wakeLock);
+            Contacts.navigation.home();
+            Contacts.showStatus(_('memoryCardContacts-imported3', {
+              n: importedContacts
+            }));
+          });
         }, DELAY_FEEDBACK);
       });
     }
@@ -606,7 +610,8 @@ contacts.Settings = (function() {
   }
 
   var updateTimestamps = function updateTimestamps(callback) {
-    LazyLoader.load(['/contacts/js/utilities/normalizer.js'], function() {
+    LazyLoader.load(['/contacts/js/utilities/normalizer.js',
+                     '/contacts/js/import_utils.js'], function() {
       Array.prototype.forEach.call(importSources, function(node) {
         window.importUtils.getTimestamp(node.dataset.source,
                                         function(time) {

@@ -743,7 +743,6 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/import_utils.js',
       '/dialer/js/telephony_helper.js',
       '/contacts/js/sms_integration.js',
       '/contacts/js/utilities/sdcard.js',
