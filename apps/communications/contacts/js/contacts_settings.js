@@ -305,64 +305,70 @@ contacts.Settings = (function() {
   };
 
   function resetWait(wakeLock) {
-    Contacts.hideOverlay();
-    if (wakeLock) {
-      wakeLock.unlock();
-    }
+    Contacts.hideOverlay(function() {
+      if (wakeLock) {
+        wakeLock.unlock();
+      }
+    });
   }
 
   function doFbUnlink() {
-    var progressBar = Contacts.showOverlay(_('cleaningFbData'), 'progressBar');
-    var wakeLock = navigator.requestWakeLock('cpu');
+    Contacts.showOverlay(_('cleaningFbData'), 'progressBar', null,
+                         function(progressBar) {
+      var wakeLock = navigator.requestWakeLock('cpu');
 
-    var req = fb.utils.clearFbData();
+      var req = fb.utils.clearFbData();
 
-    req.onsuccess = function() {
-      var cleaner = req.result;
-      progressBar.setTotal(cleaner.lcontacts.length);
-      cleaner.onsuccess = function() {
-        Contacts.showOverlay(_('loggingOutFb'), 'activityBar');
-        var logoutReq = fb.utils.logout();
+      req.onsuccess = function() {
+        var cleaner = req.result;
+        progressBar.setTotal(cleaner.lcontacts.length);
+        cleaner.onsuccess = function() {
+          Contacts.showOverlay(_('loggingOutFb'), 'activityBar',
+                               null, function() {
+            var logoutReq = fb.utils.logout();
 
-        logoutReq.onsuccess = function() {
-          checkFbImported('logged-out');
-          // And it is needed to clear any previously set alarm
-          window.asyncStorage.getItem(fb.utils.ALARM_ID_KEY, function(data) {
-            if (data) {
-              navigator.mozAlarms.remove(Number(data));
-            }
-            window.asyncStorage.removeItem(fb.utils.ALARM_ID_KEY);
+            logoutReq.onsuccess = function() {
+              checkFbImported('logged-out');
+              // And it is needed to clear any previously set alarm
+              window.asyncStorage.getItem(fb.utils.ALARM_ID_KEY,
+                                          function(data) {
+                if (data) {
+                  navigator.mozAlarms.remove(Number(data));
+                }
+                window.asyncStorage.removeItem(fb.utils.ALARM_ID_KEY);
+              });
+
+              window.asyncStorage.removeItem(fb.utils.LAST_UPDATED_KEY);
+              window.asyncStorage.removeItem(fb.utils.CACHE_FRIENDS_KEY);
+
+              resetWait(wakeLock);
+            };
+
+            logoutReq.onerror = function(e) {
+              resetWait(wakeLock);
+              window.console.error('Contacts: Error while FB logout: ',
+                e.target.error);
+            };
           });
-
-          window.asyncStorage.removeItem(fb.utils.LAST_UPDATED_KEY);
-          window.asyncStorage.removeItem(fb.utils.CACHE_FRIENDS_KEY);
-
-          resetWait(wakeLock);
         };
 
-        logoutReq.onerror = function(e) {
-          resetWait(wakeLock);
-          window.console.error('Contacts: Error while FB logout: ',
-            e.target.error);
+        cleaner.oncleaned = function(num) {
+          progressBar.update();
+        };
+
+        cleaner.onerror = function(contactid, error) {
+          window.console.error('Contacts: Error while FB cleaning contact: ',
+            contactid, 'Error: ', error.name);
+          // Wait state is not reset because the cleaning process will continue
         };
       };
 
-      cleaner.oncleaned = function(num) {
-        progressBar.update();
+      req.onerror = function(e) {
+        window.console.error('Error while starting the cleaning operations',
+          req.error.name);
+        resetWait(wakeLock);
       };
-
-      cleaner.onerror = function(contactid, error) {
-        window.console.error('Contacts: Error while FB cleaning contact: ',
-          contactid, 'Error: ', error.name);
-        // Wait state is not resetted because the cleaning process will continue
-      };
-    };
-
-    req.onerror = function(e) {
-      window.console.error('Error while starting the cleaning operations',
-        req.error.name);
-      resetWait(wakeLock);
-    };
+    });
   }
 
   // Listens for any change in the ordering preferences
@@ -374,89 +380,92 @@ contacts.Settings = (function() {
 
   // Import contacts from SIM card and updates ui
   var onSimImport = function onSimImport(evt) {
-    var progress = Contacts.showOverlay(_('simContacts-reading'),
-      'activityBar');
+    Contacts.showOverlay(_('simContacts-reading'), 'activityBar',
+                         null, function(progress) {
 
-    var wakeLock = navigator.requestWakeLock('cpu');
+      var wakeLock = navigator.requestWakeLock('cpu');
 
-    var importer = new SimContactsImporter();
-    var totalContactsToImport;
-    var importedContacts = 0;
-    // Delay for showing feedback to the user after importing
-    var DELAY_FEEDBACK = 200;
+      var importer = new SimContactsImporter();
+      var totalContactsToImport;
+      var importedContacts = 0;
+      // Delay for showing feedback to the user after importing
+      var DELAY_FEEDBACK = 200;
 
-    importer.onread = function import_read(n) {
-      totalContactsToImport = n;
-      progress.setClass('progressBar');
-      progress.setHeaderMsg(_('simContacts-importing'));
-      progress.setTotal(totalContactsToImport);
-    };
+      importer.onread = function import_read(n) {
+        totalContactsToImport = n;
+        progress.setClass('progressBar');
+        progress.setHeaderMsg(_('simContacts-importing'));
+        progress.setTotal(totalContactsToImport);
+      };
 
-    importer.onfinish = function import_finish() {
-      window.setTimeout(function onfinish_import() {
-        LazyLoader.load(['/contacts/js/import_utils.js'], function() {
-          window.importUtils.setTimestamp('sim');
-          resetWait(wakeLock);
-          Contacts.navigation.home();
-          Contacts.showStatus(_('simContacts-imported3',
-            {n: importedContacts}));
+      importer.onfinish = function import_finish() {
+        window.setTimeout(function onfinish_import() {
+          LazyLoader.load(['/contacts/js/import_utils.js'], function() {
+            window.importUtils.setTimestamp('sim');
+            resetWait(wakeLock);
+            Contacts.navigation.home();
+            Contacts.showStatus(_('simContacts-imported3',
+              {n: importedContacts}));
+          });
+        }, DELAY_FEEDBACK);
+      };
+
+      importer.onimported = function imported_contact() {
+        importedContacts++;
+        progress.update();
+      };
+
+      importer.onerror = function import_error() {
+        LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
+          var cancel = {
+            title: _('cancel'),
+            callback: function() {
+              ConfirmDialog.hide();
+            }
+          };
+          var retry = {
+            title: _('retry'),
+            isRecommend: true,
+            callback: function() {
+              ConfirmDialog.hide();
+              // And now the action is reproduced one more time
+              simImportLink.click();
+            }
+          };
+          ConfirmDialog.show(null, _('simContacts-error'), cancel, retry);
+          Contacts.hideOverlay();
         });
-      }, DELAY_FEEDBACK);
-    };
+      };
 
-    importer.onimported = function imported_contact() {
-      importedContacts++;
-      progress.update();
-    };
-
-    importer.onerror = function import_error() {
-      LazyLoader.load(['/contacts/js/confirm_dialog.js'], function() {
-        var cancel = {
-          title: _('cancel'),
-          callback: function() {
-            ConfirmDialog.hide();
-          }
-        };
-        var retry = {
-          title: _('retry'),
-          isRecommend: true,
-          callback: function() {
-            ConfirmDialog.hide();
-            // And now the action is reproduced one more time
-            simImportLink.click();
-          }
-        };
-        ConfirmDialog.show(null, _('simContacts-error'), cancel, retry);
-        Contacts.hideOverlay();
-      });
-    };
-
-    importer.start();
+      importer.start();
+    });
   };
 
   var onSdImport = function onSdImport() {
-    var progress = Contacts.showOverlay(
-      _('memoryCardContacts-reading'), 'activityBar');
-    var wakeLock = navigator.requestWakeLock('cpu');
+    Contacts.showOverlay(_('memoryCardContacts-reading'), 'activityBar',
+                         null, function(progress) }
+      var wakeLock = navigator.requestWakeLock('cpu');
 
-    var importedContacts = 0;
-    // Delay for showing feedback to the user after importing
-    var DELAY_FEEDBACK = 200;
+      var importedContacts = 0;
+      // Delay for showing feedback to the user after importing
+      var DELAY_FEEDBACK = 200;
 
-    LazyLoader.load(['/contacts/js/utilities/sdcard.js'], function() {
-      utils.sdcard.retrieveFiles([
-        'text/vcard',
-        'text/x-vcard',
-        'text/directory;profile=vCard',
-        'text/directory'
-      ], ['vcf', 'vcard'], function(err, fileArray) {
-        if (err)
-          return import_error(err);
+      LazyLoader.load(['/contacts/js/utilities/sdcard.js',
+                       '/contacts/js/utilities/vcard_parser.js'], function() {
+        utils.sdcard.retrieveFiles([
+          'text/vcard',
+          'text/x-vcard',
+          'text/directory;profile=vCard',
+          'text/directory'
+        ], ['vcf', 'vcard'], function(err, fileArray) {
+          if (err)
+            return import_error(err);
 
-        if (fileArray.length)
-          utils.sdcard.getTextFromFiles(fileArray, '', onFiles);
-        else
-          import_error('No contacts were found.');
+          if (fileArray.length)
+            utils.sdcard.getTextFromFiles(fileArray, '', onFiles);
+          else
+            import_error('No contacts were found.');
+        });
       });
     });
 

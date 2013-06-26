@@ -646,12 +646,23 @@ var Contacts = (function() {
     });
   };
 
-  var showOverlay = function c_showOverlay(message, progressClass, textId) {
-    return utils.overlay.show(message, progressClass, textId);
+  var showOverlay = function c_showOverlay(message, progressClass,
+                                           textId, callback) {
+    LazyLoader.load(['/contacts/js/utilities/overlay.js'], function() {
+      var rtn = utils.overlay.show(message, progressClass, textId);
+      if (callback) {
+        callback(rtn);
+      }
+    });
   };
 
-  var hideOverlay = function c_hideOverlay() {
-    utils.overlay.hide();
+  var hideOverlay = function c_hideOverlay(callback) {
+    LazyLoader.load(['/contacts/js/utilities/overlay.js'], function() {
+      utils.overlay.hide();
+      if (callback) {
+        callback();
+      }
+    });
   };
 
   var showStatus = function c_showStatus(message) {
@@ -748,10 +759,8 @@ var Contacts = (function() {
 
   var addAsyncScripts = function addAsyncScripts() {
     var lazyLoadFiles = [
-      '/contacts/js/utilities/vcard_parser.js',
       '/contacts/js/utilities/import_sim_contacts.js',
       '/contacts/js/utilities/status.js',
-      '/contacts/js/utilities/overlay.js',
       '/shared/style_unstable/progress_activity.css',
       '/shared/style/status.css',
       '/shared/style/switches.css',
