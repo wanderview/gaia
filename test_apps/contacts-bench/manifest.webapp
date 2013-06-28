@@ -1,0 +1,32 @@
+{
+  "name": "Contacts Bench",
+  "description": "Contacts Bench",
+  "type": "certified",
+  "launch_path": "/index.html",
+  "developer": {
+    "name": "The Gaia Team",
+    "url": "https://github.com/mozilla-b2g/gaia"
+  },
+  "permissions": {
+    "telephony":{},
+    "voicemail":{},
+    "contacts":{ "access": "readwrite" },
+    "mobileconnection":{},
+    "attention":{},
+    "settings":{ "access": "readwrite" },
+    "desktop-notification":{},
+    "alarms": {},
+    "systemXHR": {},
+    "wifi-manage":{},
+    "time": {},
+    "audio-channel-telephony":{},
+    "audio-channel-ringer":{},
+    "browser":{},
+    "idle":{},
+    "storage": {},
+    "device-storage:sdcard": { "access": "readonly" }
+  },
+  "icons": {
+    "128": "/style/icons/Blank.png"
+  }
+}
