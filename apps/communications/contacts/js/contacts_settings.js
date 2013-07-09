@@ -443,7 +443,7 @@ contacts.Settings = (function() {
 
   var onSdImport = function onSdImport() {
     Contacts.showOverlay(_('memoryCardContacts-reading'), 'activityBar',
-                         null, function(progress) }
+                         null, function(progress) {
       var wakeLock = navigator.requestWakeLock('cpu');
 
       var importedContacts = 0;
