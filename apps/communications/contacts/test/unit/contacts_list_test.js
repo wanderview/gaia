@@ -432,6 +432,7 @@ suite('Render contacts list', function() {
         assertGroup(groupB, containerB, 1);
         assertGroup(groupC, containerC, 1);
         assertNoGroup(groupD, containerD);
+        done();
       });
     });
 
