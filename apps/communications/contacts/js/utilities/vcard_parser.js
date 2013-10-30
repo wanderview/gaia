@@ -339,7 +339,16 @@ var VCFReader = (function _VCFReader() {
      * change in case there are vcards with syntax errors or that our processor
      * can't parse.
      */
-    this.total = this.contents.match(/end:vcard/gi).length;
+    var match = this.contents.match(/end:vcard/gi);
+    // If there are no matches, then this probably isn't a vcard and we should
+    // stop processing.
+    if (!match) {
+      if (cb) {
+        cb();
+      }
+      return;
+    }
+    this.total = match.length;
     this.onread && this.onread(this.total);
     this.ondone = cb;
 
@@ -385,7 +394,7 @@ var VCFReader = (function _VCFReader() {
       _onParsed(e, ct);
 
       cursor += 1;
-      if (contactObjects[cursor]) {
+      if (cursor < contactObjects.length) {
         saveContact(contactObjects[cursor]);
       }
     }
@@ -435,7 +444,7 @@ var VCFReader = (function _VCFReader() {
     req.onsuccess = function onsuccess() {
       setTimeout(function() {
         cb(null, item);
-      }, 200);
+      }, 0);
     };
     req.onerror = cb;
   };
@@ -522,13 +531,14 @@ var VCFReader = (function _VCFReader() {
       // If the current line indicates the end of a card,
       if (reEndCard.test(currentLine)) {
         cardsProcessed += 1;
-        cardArray.push([]);
 
         if (cardsProcessed === VCFReader.CONCURRENCY ||
           cardsProcessed === this.total) {
           parseEntries(cardArray, callPost);
           break;
         }
+
+        cardArray.push([]);
 
         continue;
       }
