@@ -80,6 +80,12 @@ contacts.List = (function() {
 
   var NOP_FUNCTION = function() {};
 
+  var doOnscreenScheduled = false;
+  var doOnscreenScheduledRows = [];
+
+  var SCROLL_MARGIN_SCREEN_RATIO = 4.0;
+  var MAX_ONSCREEN_ELAPSED_TIME_MS = 12;
+
   var onscreen = function(row) {
     var id = row.dataset.uuid;
     var group = row.dataset.group;
@@ -87,26 +93,62 @@ contacts.List = (function() {
       return;
     }
 
-    rowsOnScreen[id] = rowsOnScreen[id] || {};
-    rowsOnScreen[id][group] = row;
+    doOnscreenScheduledRows.push(row);
+    scheduleDoOnscreen();
+  };
+
+  function scheduleDoOnscreen() {
+    if (doOnscreenScheduled) {
+      return;
+    }
+    doOnscreenScheduled = true;
+    requestAnimationFrame(doOnscreen);
+  }
+
+  function doOnscreen() {
+    doOnscreenScheduled = false;
 
     monitor && monitor.pauseMonitoringMutations();
-    renderLoadedContact(row, id);
-    updateRowStyle(row, true);
-    renderPhoto(row, id);
-    updateSingleRowSelection(row, id);
 
-    // Since imgLoader.reload() causes sync reflows we only want to make this
-    // call when something happens that affects our onscreen view.  Therefore
-    // we defer the call until here when we know the visibility monitor has
-    // detected a change and called onscreen().
-    if (imgLoader && needImgLoaderReload) {
-      needImgLoaderReload = false;
-      imgLoader.reload();
+    var start = Date.now();
+    while (doOnscreenScheduledRows.length) {
+      var row = doOnscreenScheduledRows.shift();
+      if (!row) {
+        continue;
+      }
+
+      var id = row.dataset.uuid;
+      var group = row.dataset.group;
+
+      rowsOnScreen[id] = rowsOnScreen[id] || {};
+      rowsOnScreen[id][group] = row;
+
+      renderLoadedContact(row, id);
+      updateRowStyle(row, true);
+      renderPhoto(row, id);
+      updateSingleRowSelection(row, id);
+
+      // Since imgLoader.reload() causes sync reflows we only want to make this
+      // call when something happens that affects our onscreen view.  Therefore
+      // we defer the call until here when we know the visibility monitor has
+      // detected a change and called onscreen().
+      if (imgLoader && needImgLoaderReload) {
+        needImgLoaderReload = false;
+        imgLoader.reload();
+      }
+
+      var elapsed = Date.now() - start;
+      if (elapsed > MAX_ONSCREEN_ELAPSED_TIME_MS) {
+        break;
+      }
     }
 
     monitor && monitor.resumeMonitoringMutations(false);
-  };
+
+    if (doOnscreenScheduledRows.length) {
+      scheduleDoOnscreen();
+    }
+  }
 
   var renderLoadedContact = function(el, id) {
     if (el.dataset.rendered) {
@@ -137,6 +179,15 @@ contacts.List = (function() {
     var group = row.dataset.group;
     if (!id || !group) {
       return;
+    }
+
+    // If the row goes offscreen before we can mark it onscreen, then
+    // just avoid doing the render work at all.
+    for (var i = 0; i < doOnscreenScheduledRows.length; ++i) {
+      var scheduledRow = doOnscreenScheduledRows[i];
+      if (scheduledRow && scheduledRow.dataset.uuid === id) {
+        doOnscreenScheduledRows[i] = null;
+      }
     }
 
     if (rowsOnScreen[id]) {
@@ -656,10 +707,10 @@ contacts.List = (function() {
     // onscreen() calls when adding those first contacts.
     var vm_file = '/shared/js/tag_visibility_monitor.js';
     LazyLoader.load([vm_file], function() {
-      var scrollMargin = ~~(getViewHeight() * 1.5);
+      var scrollMargin = ~~(getViewHeight() * SCROLL_MARGIN_SCREEN_RATIO);
       // NOTE: Making scrollDelta too large will cause janky scrolling
       //       due to bursts of onscreen() calls from the monitor.
-      var scrollDelta = ~~(scrollMargin / 15);
+      var scrollDelta = 0;
       monitor = monitorTagVisibility(scrollable, 'li', scrollMargin,
                                      scrollDelta, onscreen, offscreen);
     });
