@@ -1,0 +1,10 @@
+{
+  "name": "List",
+  "description": "Virtual List",
+  "type": "certified",
+  "launch_path": "/virtual-list-demo.html",
+  "developer": {
+    "name": "The Gaia Team",
+    "url": "https://github.com/mozilla-b2g/gaia"
+  }
+}
