@@ -11,6 +11,7 @@ scrolledChild.style.height = itemHeight*numItems + "px";
 
 // Indexed by item number, the item elements currently in the DOM.
 var itemsInDOM = [];
+var lastScrollPos = getScrollPos();
 
 function generateItems(displayPortMarginMultiplier) {
   var scrollPos = getScrollPos();
@@ -34,14 +35,7 @@ function generateItems(displayPortMarginMultiplier) {
       recyclableItems.push(i);
     }
   }
-  // Put the items that are furthest away from the displayport at the end of
-  // the array.
-  function distanceFromDisplayPort(i) {
-    return i < startIndex ? startIndex - 1 - i : i - endIndex;
-  }
-  recyclableItems.sort(function (a,b) {
-    return distanceFromDisplayPort(a) - distanceFromDisplayPort(b);
-  });
+  recyclableItems.sort();
 
   for (var i = startIndex; i < endIndex; ++i) {
     if (itemsInDOM[i]) {
@@ -49,13 +43,18 @@ function generateItems(displayPortMarginMultiplier) {
     }
     var item;
     if (recyclableItems.length > 0) {
-      var recycleIndex = recyclableItems.pop();
-      item = itemsInDOM[recycleIndex];
+      var recycleIndex;
+      // Delete the item furthest from the direction we're scrolling toward
+      if (scrollPos >= lastScrollPos) {
+        recycleIndex = recyclableItems.shift();
+      } else {
+        recycleIndex = recyclableItems.pop();
+      }
+      document.body.removeChild(itemsInDOM[recycleIndex]);
       delete itemsInDOM[recycleIndex];
-    } else {
-      item = template.cloneNode(true);
-      document.body.appendChild(item);
     }
+    item = template.cloneNode(true);
+    document.body.appendChild(item);
     populateItem(item, i);
     item.style.top = i*itemHeight + "px";
     itemsInDOM[i] = item;
