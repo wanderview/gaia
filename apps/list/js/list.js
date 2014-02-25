@@ -66,6 +66,8 @@ function generateItems(displayPortMarginMultiplier) {
     itemsInDOM[i] = item;
     document.body.appendChild(item);
   }
+
+  lastScrollPos = scrollPos;
 }
 
 function fixupItems() {
