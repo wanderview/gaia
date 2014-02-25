@@ -27,7 +27,7 @@ function populateItem(element, index) {
 // This demo scrolls the whole document. To change it to scroll an overflow:auto
 // element, you would just need to replace these functions here with something
 // else.
-function getScrollPos() { return window.scrollY; }
-function getScrollPortHeight() { return window.innerHeight; }
-var scrolledChild = document.documentElement;
-var scrollEventNode = window;
+var scrolledChild = document.getElementById("inner");
+var scrollEventNode = document.getElementById("outer");
+function getScrollPos() { return scrollEventNode.scrollTop; }
+function getScrollPortHeight() { return scrollEventNode.clientHeight; }

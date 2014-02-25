@@ -1,7 +1,11 @@
 <!DOCTYPE HTML>
 <html>
-<body style="background-color: #fff">
+<head>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
+</head>
+<body>
 <!-- BEGIN APPLICATION CODE -->
+<div id="outer"><div id="inner"></div></div>
 <style>
 /* The styles of .item and its contents can be whatever you want, but
    all items must have the same height (the height of the template item
@@ -27,6 +31,28 @@
 .image {
   width:32px;
   height:32px;
+}
+body {
+  overflow-x: hidden;
+  margin: 0px;
+}
+#outer {
+  padding: 0px;
+  height: 480px;
+  overflow: auto;
+
+  /* hide scrollbar */
+  /*width: calc(100% + 1rem);*/
+
+  /* show scrollbar */
+  width: 100%;
+}
+#inner {
+  padding: 0px;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fff;
 }
 </style>
 <!-- The 'template' element is cloned to create each item. For maximum performance

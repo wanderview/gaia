@@ -57,14 +57,14 @@ function generateItems(displayPortMarginMultiplier) {
       //       essentially just repositioning it.  This avoid pathological
       //       layerization behavior where each item gets assigned its own
       //       layer.
-      document.body.removeChild(item);
+      scrolledChild.removeChild(item);
     } else {
       item = template.cloneNode(true);
     }
     populateItem(item, i);
     item.style.top = i*itemHeight + "px";
     itemsInDOM[i] = item;
-    document.body.appendChild(item);
+    scrolledChild.appendChild(item);
   }
 
   lastScrollPos = scrollPos;
