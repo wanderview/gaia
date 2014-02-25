@@ -50,14 +50,21 @@ function generateItems(displayPortMarginMultiplier) {
       } else {
         recycleIndex = recyclableItems.pop();
       }
-      document.body.removeChild(itemsInDOM[recycleIndex]);
+      item = itemsInDOM[recycleIndex];
       delete itemsInDOM[recycleIndex];
+
+      // NOTE: We must detach and reattach the node even though we are
+      //       essentially just repositioning it.  This avoid pathological
+      //       layerization behavior where each item gets assigned its own
+      //       layer.
+      document.body.removeChild(item);
+    } else {
+      item = template.cloneNode(true);
     }
-    item = template.cloneNode(true);
-    document.body.appendChild(item);
     populateItem(item, i);
     item.style.top = i*itemHeight + "px";
     itemsInDOM[i] = item;
+    document.body.appendChild(item);
   }
 }
 
