@@ -1,6 +1,11 @@
 // Set the number of items you want in your list here. Dynamically changing the
 // number of items is not supported but would be easy to add.
 var numItems = 100000;
+// Tune the multiplier according to how much time it takes to prepare items
+// to populate the DOM.  If you have a slow DB lookup, increase the value.  If
+// you have everything immediately available, you can decrease it probably as
+// far down as 0.5.
+displayPortMarginMultiplier = 1.5;
 // Change this function to control what gets created for each item. "element"
 // is a copy of the template element (which may have been previously used with
 // another index, so make sure you reset any contents which may have been set
@@ -13,15 +18,37 @@ var numItems = 100000;
 // database. Or, you could replace the item fields with placeholders (e.g.
 // "loading..."), issue an async database query to get the data, and fill in
 // the item DOM when the query completes.
+var appItemModels = [];
+function prepareItemModel(index, callback) {
+  var hue = (index*1000)%360;
+  appItemModels[index] = {
+    imageColor: "hsl(" + hue + ",100%,90%)",
+    name: "Made Up Name #" + index,
+    number: "0800 11" + index
+  };
+  setTimeout(callback.bind(null, index, true));
+}
+
 function populateItem(element, index) {
+  var data = appItemModels[index];
+  if (!data) {
+    return false;
+  }
+  delete appItemModels[index];
+
   var image = element.firstChild;
   var name = image.nextSibling;
   var number = name.nextSibling;
- 
-  var hue = (index*1000)%360;
-  image.style.backgroundColor = "hsl(" + hue + ",100%,90%)";
-  name.firstChild.data = "Made Up Name #" + index;
-  number.firstChild.data = "0800 11" + index;
+
+  image.style.backgroundColor = data.imageColor;
+  name.firstChild.data = data.name;
+  number.firstChild.data = data.number;
+
+  return true;
+}
+
+function cancelItem(index) {
+  delete appItemModels[index];
 }
 
 // This demo scrolls the whole document. To change it to scroll an overflow:auto
