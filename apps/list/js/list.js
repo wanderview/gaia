@@ -11,10 +11,40 @@ scrolledChild.style.height = itemHeight*numItems + "px";
 
 // Indexed by item number, the item elements currently in the DOM.
 var itemsInDOM = [];
-var lastScrollPos = getScrollPos();
+
+// Init our lastScrollPos to be slightly off from starting position to
+// force initial render.
+var lastScrollPos = getScrollPos() - 1;
+
+// 6 px/ms max velocity * 16 ms/frame = 96 px/frame
+// 480 px/screen / 96 px/frame = 5 frames/screen
+// So we only need to do work every 5th frame.  If we could get the max velocity
+// pref we could calculate this.
+var MAX_SKIPPED_FRAMES = 4;
+
+// Make sure we do work on the first time through.
+var skippedFrames = MAX_SKIPPED_FRAMES;
 
 function generateItems(displayPortMarginMultiplier) {
+  // As described above we only need to do work every N frames.
+  // TODO: It would be nice to spread work across all these frames instead
+  //       of bursting every Nth frame.  Have to weigh complexity costs there.
+  if (skippedFrames < MAX_SKIPPED_FRAMES) {
+    skippedFrames += 1;
+    requestAnimationFrame(generateItems.bind(null, displayPortMarginMultiplier));
+  }
+  skippedFrames = 0;
+
   var scrollPos = getScrollPos();
+
+  // If we stopped scrolling then go back to passive mode and wait for a new
+  // scroll to start.
+  if (scrollPos === lastScrollPos) {
+    skippedFrames = MAX_SKIPPED_FRAMES;
+    enableEventHandlers();
+    return;
+  }
+
   var scrollPortHeight = getScrollPortHeight();
   // Determine which items we *need* to have in the DOM. displayPortMargin
   // is somewhat arbitrary. If there is fast async scrolling, increase
@@ -37,6 +67,7 @@ function generateItems(displayPortMarginMultiplier) {
   }
   recyclableItems.sort();
 
+  var toAppend = [];
   for (var i = startIndex; i < endIndex; ++i) {
     if (itemsInDOM[i]) {
       continue;
@@ -64,21 +95,41 @@ function generateItems(displayPortMarginMultiplier) {
     populateItem(item, i);
     item.style.top = i*itemHeight + "px";
     itemsInDOM[i] = item;
-    scrolledChild.appendChild(item);
+    toAppend.push(item);
+  }
+
+  if (toAppend.length === 1) {
+    scrolledChild.appendChild(toAppend.shift());
+  } else if (toAppend.length) {
+    var frag = document.createDocumentFragment();
+    while (toAppend.length) {
+      frag.appendChild(toAppend.shift());
+    }
+    scrolledChild.appendChild(frag);
   }
 
   lastScrollPos = scrollPos;
+
+  // Continue checking every animation frame until we see that we have stopped
+  // scrolling.
+  requestAnimationFrame(generateItems.bind(null, displayPortMarginMultiplier));
+}
+
+function enableEventHandlers() {
+  scrollEventNode.addEventListener("scroll", fixupItems);
+  scrollEventNode.addEventListener("resize", fixupItems);
+}
+
+function disableEventHandlers() {
+  scrollEventNode.removeEventListener("scroll", fixupItems);
+  scrollEventNode.removeEventListener("resize", fixupItems);
 }
 
 function fixupItems() {
-  // Synchronously generate all the items that are immediately or nearly visible
-  generateItems(1);
-  // Asynchronously generate the other items for the displayport
-  setTimeout(function() {
-    generateItems(4);
-  }, 0);
+  requestAnimationFrame(generateItems.bind(null, 1));
+
+  // Disable events as we will monitor scroll position manually every frame
+  disableEventHandlers();
 }
 
 fixupItems();
-scrollEventNode.addEventListener("scroll", fixupItems);
-scrollEventNode.addEventListener("resize", fixupItems);
