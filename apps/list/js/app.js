@@ -56,5 +56,6 @@ function cancelItem(index) {
 // else.
 var scrolledChild = document.getElementById("inner");
 var scrollEventNode = document.getElementById("outer");
+scrollEventNode.style.height = window.innerHeight + "px";
 function getScrollPos() { return scrollEventNode.scrollTop; }
 function getScrollPortHeight() { return scrollEventNode.clientHeight; }
